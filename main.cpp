@@ -54,7 +54,7 @@ public:
     }
 
     void generateCallPrintfInt(Value* theInt) {
-        vector<Value *> printArgs;
+        vector<Value*> printArgs;
         Value *formatStr = builder->CreateGlobalStringPtr("%d\n");
         printArgs.push_back(formatStr);
         printArgs.push_back(theInt);
@@ -68,10 +68,18 @@ public:
     }
 
     void generateCallPutChar(Value* theChar) {
-        vector<Value *> args = {theChar};
-        builder->CreateCall(module->getFunction("putchar"), args);
+        builder->CreateCall(module->getFunction("putchar"), {theChar});
     }
 
+    void generateMalloc() {
+        vector<Type *> args { Type::getInt32Ty(*context) };
+        FunctionType *mallocType = FunctionType::get(builder->getInt8PtrTy(), args, false);
+        Function::Create(mallocType, Function::ExternalLinkage, "malloc", module.get());
+    }
+
+    Value* generateCallMalloc(Value* size) {
+        return builder->CreateCall(module->getFunction("malloc"), {size});
+    }
 
     void generateGetChar() {
         FunctionType* getCharType = FunctionType::get(builder->getInt8Ty(), {}, false);
@@ -88,6 +96,10 @@ public:
         return ConstantInt::get(*context, APInt(32, i));
     }
 
+    Value* getConst64(const int i) {
+        return ConstantInt::get(*context, APInt(64, i));
+    }
+
     Value* getConstChar(const char c) {
         return ConstantInt::get(*context, APInt(8, c));
     }
@@ -101,6 +113,16 @@ public:
         raw_ostream* out = new raw_fd_ostream(outPath, EC, sys::fs::F_None);
         module->print(*out, nullptr);
     }
+
+    void setCharArrayElement(Value* arr, Value* index, Value* theChar) {
+        auto elemPtr = builder->CreateGEP(arr, index);
+        builder->CreateStore(theChar, elemPtr);
+    }
+
+    Value* getCharArrayElement(Value* arr, Value* index) {
+        auto elemPtr = builder->CreateGEP(arr, index);
+        return builder->CreateLoad(elemPtr);
+    }
 };
 
 ContextBuilderModule createContextBuilderModule() {
@@ -113,17 +135,19 @@ ContextBuilderModule createContextBuilderModule() {
 int main() {
     auto cbm = createContextBuilderModule();
     cbm.generateEntryPoint();
-
-    cbm.generatePrintfInt();
-
     cbm.generatePutChar();
-    cbm.generateGetChar();
-    auto a = cbm.generateCallGetChar();
-    cbm.generateCallPutChar(a);
-    cbm.return0FromMain();
+    cbm.generateMalloc();
 
-    auto out = "/home/valerij/test11.ll";
-    cbm.printIRtoFile(out);
+    Value* arrptr = cbm.generateCallMalloc(cbm.getConstInt(3002));
+    Value* index = cbm.getConst64(5);
+
+    cbm.setCharArrayElement(arrptr, index, cbm.getConstChar('x'));
+    auto elem = cbm.getCharArrayElement(arrptr, index);
+
+    cbm.generateCallPutChar(elem);
+    cbm.return0FromMain(); 
+
+    cbm.printIRtoFile("/home/valerij/test11.ll");
 
     return 0;
 }
