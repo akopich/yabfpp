@@ -30,11 +30,11 @@ public:
     llvm::Value* pointer;
     ContextBuilderModule* cbm;
 
-    llvm::Value* getIndex();
+    [[nodiscard]] llvm::Value* getIndex() const;
 
-    llvm::Value* getCurrentChar();
+    [[nodiscard]] llvm::Value* getCurrentChar() const;
 
-    void setCurrentChar(llvm::Value* theChar);
+    void setCurrentChar(llvm::Value* theChar) const;
 };
 
 

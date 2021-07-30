@@ -37,7 +37,7 @@ using namespace std;
 
 Expr* parse(const string& s, int& i);
 
-Expr* parseToken(const string s, int& i) {
+Expr* parseToken(const string& s, int& i) {
     char c = s[i];
     i++;
     switch (c) {
@@ -84,7 +84,8 @@ unique_ptr<Expr> parse(const string& s) {
 int main() {
     auto cbm = createContextBuilderModule();
     auto machine = cbm.init();
-    auto expr = parse("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
+    auto expr = parse(
+            "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
     expr->generate(machine);
 
     cbm.finalizeAndPrintIRtoFile("/home/valerij/test.ll");

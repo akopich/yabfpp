@@ -10,7 +10,7 @@
 
 class Expr {
 public:
-    virtual void generate(BFMachine &machine) const = 0;
+    virtual void generate(const BFMachine& machine) const = 0;
 
     virtual ~Expr();
 };
@@ -21,49 +21,49 @@ private:
 public:
     explicit MovePtrExpr(int steps);
 
-    void generate(BFMachine &machine)  const  override;
+    void generate(const BFMachine& machine) const override;
 };
 
-class AddExpr: public Expr {
+class AddExpr : public Expr {
 private:
     int add;
 public:
     explicit AddExpr(int add);
 
-    void generate(BFMachine &machine) const  override;
+    void generate(const BFMachine& machine) const override;
 };
 
 class ReadExpr : public Expr {
 public:
-    void generate(BFMachine &machine) const  override;
+    void generate(const BFMachine& machine) const override;
 };
 
 class PrintExpr : public Expr {
 public:
-    void generate(BFMachine &machine) const override;
+    void generate(const BFMachine& machine) const override;
 };
 
-class LoopExpr: public Expr {
+class LoopExpr : public Expr {
 private:
     std::unique_ptr<Expr> body;
 public:
-    explicit LoopExpr(  Expr* body);
+    explicit LoopExpr(Expr* body);
 
-    void generate(BFMachine &machine) const override;
+    void generate(const BFMachine& machine) const override;
 };
 
-class ListExpr: public Expr {
+class ListExpr : public Expr {
 private:
     std::vector<Expr*> v;
 
 public:
-    explicit ListExpr(const std::vector<Expr*> &v);
+    explicit ListExpr(const std::vector<Expr*>& v);
 
-    ListExpr(const ListExpr &e) = delete;
+    ListExpr(const ListExpr& e) = delete;
 
     ListExpr& operator=(const ListExpr& e) = delete;
 
-    void generate(BFMachine &machine) const override;
+    void generate(const BFMachine& machine) const override;
 
     ~ListExpr() override;
 };

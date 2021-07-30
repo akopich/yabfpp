@@ -44,50 +44,59 @@ class ContextBuilderModule {
 private:
     void generateEntryPoint();
 
-    void generatePrintfInt();
+    void generatePrintfInt() const;
 
-    void generatePutChar();
+    void generatePutChar() const;
 
-    void generateCalloc();
+    void generateCalloc() const;
 
-    void generateGetChar();
+    void generateGetChar() const;
 
-    void return0FromMain();
+    void return0FromMain() const;
+
+    std::unique_ptr<llvm::LLVMContext> context;
+    std::unique_ptr<llvm::Module> module;
+    llvm::Function* main{};
+
 public:
     friend ContextBuilderModule createContextBuilderModule();
 
-    std::unique_ptr<llvm::LLVMContext> context;
-    std::unique_ptr<llvm::IRBuilder<>> builder;
-    std::unique_ptr<llvm::Module> module;
-    llvm::Function* main;
+    ContextBuilderModule(std::unique_ptr<llvm::LLVMContext> context,
+                         std::unique_ptr<llvm::Module> module,
+                         std::unique_ptr<llvm::IRBuilder<>> builder);
 
-    llvm::BasicBlock* createBasicBlock(const std::string& s);
+    std::unique_ptr<llvm::IRBuilder<>> builder;
+
+    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
     BFMachine init();
 
-    void generateCallPutChar(llvm::Value* theChar);
+    void generateCallPutChar(llvm::Value* theChar) const;
 
-    void generateCallPrintfInt(llvm::Value* theInt);
+    void generateCallPrintfInt(llvm::Value* theInt) const;
 
-    llvm::Value* generateCallCalloc(llvm::Value* size);
+    llvm::Value* generateCallCalloc(llvm::Value* size) const;
 
-    llvm::Value* generateCallGetChar();
+    [[nodiscard]] llvm::Value* generateCallGetChar() const;
 
-    llvm::Value* getConstInt(int i);
+    [[nodiscard]] llvm::Value* getConstInt(int i) const;
 
-    llvm::Value* getConst64(int i);
+    [[nodiscard]] llvm::Value* getConst64(int i) const;
 
-    llvm::Value* getConstChar(char c);
+    [[nodiscard]] llvm::Value* getConstChar(char c) const;
 
-    void finalizeAndPrintIRtoFile(const std::string& outPath);
+    void finalizeAndPrintIRtoFile(const std::string& outPath) const;
 
-    void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar);
+    void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const;
 
-    llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index);
+    llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index) const;
+
+    llvm::Value* CreateLoad(llvm::Value* ptr) const;
+
+    llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
 };
 
 ContextBuilderModule createContextBuilderModule();
-
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H
