@@ -60,15 +60,14 @@ ListExpr::ListExpr(const vector<Expr *> &v) : v(v) {}
 Expr::~Expr() = default;
 
 void LoopExpr::generate(ContextBuilderModule &cbm) const {
-    llvm::BasicBlock *loopCondBB = llvm::BasicBlock::Create(*cbm.context, "loop cond", cbm.main);
-    llvm::BasicBlock *loopBodyBB = llvm::BasicBlock::Create(*cbm.context, "loop body", cbm.main);
-    llvm::BasicBlock *afterLoopBB = llvm::BasicBlock::Create(*cbm.context, "after loop", cbm.main);
+    llvm::BasicBlock *loopCondBB = cbm.createBasicBlock("loop cond");
+    llvm::BasicBlock *loopBodyBB = cbm.createBasicBlock("loop body");
+    llvm::BasicBlock *afterLoopBB = cbm.createBasicBlock("after loop");
     cbm.builder->CreateBr(loopCondBB);
 
     cbm.builder->SetInsertPoint(loopCondBB);
     auto cond = cbm.builder->CreateICmpNE(getCurrentChar(cbm), cbm.getConstChar(0), "check loop condition");
     cbm.builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
-
 
     cbm.builder->SetInsertPoint(loopBodyBB);
     body->generate(cbm);

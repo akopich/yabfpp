@@ -68,22 +68,26 @@ Expr* parse(const string& s, int& i) {
     return new ListExpr(v);
 }
 
+
+string preprocessor(const string& s) {
+    string res = s;
+    res.erase(std::remove_if(res.begin(), res.end(), ::isspace), res.end());
+    return res;
+}
+
+
 unique_ptr<Expr> parse(const string& s) {
     int i = 0;
-    return unique_ptr<Expr>(parse(s, i));
+    return unique_ptr<Expr>(parse(preprocessor(s), i));
 }
 
 int main() {
     auto cbm = createContextBuilderModule();
-    cbm.generateEntryPoint();
-    cbm.generatePutChar();
-    cbm.generateGetChar();
     cbm.init();
     auto expr = parse("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
     expr->generate(cbm);
-    cbm.return0FromMain();
 
-    cbm.printIRtoFile("/home/valerij/test.ll");
+    cbm.finalizeAndPrintIRtoFile("/home/valerij/test.ll");
 
     return 0;
 }

@@ -67,7 +67,8 @@ void ContextBuilderModule::setCharArrayElement(llvm::Value *arr, llvm::Value *in
     builder->CreateStore(theChar, elemPtr);
 }
 
-void ContextBuilderModule::printIRtoFile(const std::string &outPath) const {
+void ContextBuilderModule::finalizeAndPrintIRtoFile(const std::string &outPath) {
+    return0FromMain();
     std::error_code EC;
     llvm::raw_ostream* out = new llvm::raw_fd_ostream(outPath, EC, llvm::sys::fs::F_None);
     module->print(*out, nullptr);
@@ -129,9 +130,22 @@ void ContextBuilderModule::init() {
     builder->CreateStore(getConstInt(0), this->pointer);
 }
 
+llvm::BasicBlock *ContextBuilderModule::createBasicBlock(const std::string &s) {
+    return llvm::BasicBlock::Create(*context, "loop cond", main);
+}
+
 ContextBuilderModule createContextBuilderModule() {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
     std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>("compiler", *context);
-    return {move(context), move(builder), move(module)};
+    ContextBuilderModule cbm{move(context), move(builder), move(module)};
+
+    cbm.generateEntryPoint();
+    cbm.generatePrintfInt();
+    cbm.generatePutChar();
+    cbm.generateCalloc();
+    cbm.generateGetChar();
+    cbm.generateGetChar();
+
+    return cbm;
 }

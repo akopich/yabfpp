@@ -38,7 +38,21 @@
 #include "llvm/ADT/APFloat.h"
 
 class ContextBuilderModule {
+private:
+    void generateEntryPoint();
+
+    void generatePrintfInt();
+
+    void generatePutChar();
+
+    void generateCalloc();
+
+    void generateGetChar();
+
+    void return0FromMain();
 public:
+    friend ContextBuilderModule createContextBuilderModule();
+
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     std::unique_ptr<llvm::Module> module;
@@ -46,26 +60,17 @@ public:
     llvm::Value* pointer;
     llvm::Function* main;
 
+    llvm::BasicBlock* createBasicBlock(const std::string& s);
+
     void init();
-
-    void generateEntryPoint();
-
-    void generatePrintfInt();
-
-    void generateCallPrintfInt(llvm::Value* theInt);
-
-    void generatePutChar();
 
     void generateCallPutChar(llvm::Value* theChar);
 
-    void generateCalloc();
+    void generateCallPrintfInt(llvm::Value* theInt);
 
     llvm::Value* generateCallCalloc(llvm::Value* size);
 
-    void generateGetChar();
-
     llvm::Value* generateCallGetChar();
-
 
     llvm::Value* getConstInt(int i);
 
@@ -73,9 +78,7 @@ public:
 
     llvm::Value* getConstChar(char c);
 
-    void return0FromMain();
-
-    void printIRtoFile(const std::string& outPath) const;
+    void finalizeAndPrintIRtoFile(const std::string& outPath);
 
     void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar);
 
