@@ -42,6 +42,11 @@ public:
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     std::unique_ptr<llvm::Module> module;
+    llvm::Value* belt;
+    llvm::Value* pointer;
+    llvm::Function* main;
+
+    void init();
 
     void generateEntryPoint();
 
@@ -53,9 +58,9 @@ public:
 
     void generateCallPutChar(llvm::Value* theChar);
 
-    void generateMalloc();
+    void generateCalloc();
 
-    llvm::Value* generateCallMalloc(llvm::Value* size);
+    llvm::Value* generateCallCalloc(llvm::Value* size);
 
     void generateGetChar();
 

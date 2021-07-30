@@ -68,26 +68,22 @@ Expr* parse(const string& s, int& i) {
     return new ListExpr(v);
 }
 
-int main() {
-
-    auto cbm = createContextBuilderModule();
+unique_ptr<Expr> parse(const string& s) {
     int i = 0;
-    Expr* e = parse("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.", i);
-    e->generate(cbm);
-//    cbm.generateEntryPoint();
-//    cbm.generatePutChar();
-//    cbm.generateMalloc();
-//
-//    Value* arrptr = cbm.generateCallMalloc(cbm.getConstInt(3002));
-//    Value* index = cbm.getConst64(5);
-//
-//    cbm.setCharArrayElement(arrptr, index, cbm.getConstChar('x'));
-//    auto elem = cbm.getCharArrayElement(arrptr, index);
-//
-//    cbm.generateCallPutChar(elem);
-//    cbm.return0FromMain();
-//
-//    cbm.printIRtoFile("/home/valerij/test.ll");
+    return unique_ptr<Expr>(parse(s, i));
+}
+
+int main() {
+    auto cbm = createContextBuilderModule();
+    cbm.generateEntryPoint();
+    cbm.generatePutChar();
+    cbm.generateGetChar();
+    cbm.init();
+    auto expr = parse("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
+    expr->generate(cbm);
+    cbm.return0FromMain();
+
+    cbm.printIRtoFile("/home/valerij/test.ll");
 
     return 0;
 }

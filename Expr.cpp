@@ -6,24 +6,41 @@
 
 using namespace std;
 
+llvm::Value* getIndex(ContextBuilderModule &cbm) {
+    return cbm.builder->CreateLoad(cbm.pointer);
+}
+
+llvm::Value* getCurrentChar(ContextBuilderModule &cbm) {
+    return cbm.getCharArrayElement(cbm.belt, getIndex(cbm));
+}
+
+void setCurrentChar(ContextBuilderModule &cbm, llvm::Value* theChar) {
+    cbm.setCharArrayElement(cbm.belt, getIndex(cbm), theChar);
+}
+
 void MovePtrExpr::generate(ContextBuilderModule &cbm) const {
-    cout << "Moved by " << this->steps << endl;
+    llvm::Value *index = getIndex(cbm);
+    auto newIndex = cbm.builder->CreateAdd(index, cbm.getConstInt(this->steps), "move pointer");
+    cbm.builder->CreateStore(newIndex, cbm.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(int steps) : steps(steps) {}
 
 void AddExpr::generate(ContextBuilderModule &cbm) const {
-    cout << "added " << this->add << endl;
+    llvm::Value* theChar = getCurrentChar(cbm);
+    llvm::Value* newChar = cbm.builder->CreateAdd(theChar, cbm.getConstChar( this->add), "add char");
+    setCurrentChar(cbm, newChar);
 }
 
 AddExpr::AddExpr(int add) : add(add) {}
 
 void ReadExpr::generate(ContextBuilderModule &cbm) const {
-    cout << "read"   << endl;
+    llvm::Value* readChar = cbm.generateCallGetChar();
+    setCurrentChar(cbm, readChar);
 }
 
 void PrintExpr::generate(ContextBuilderModule &cbm) const {
-    cout << "print"   << endl;
+    cbm.generateCallPutChar(getCurrentChar(cbm));
 }
 
 void ListExpr::generate(ContextBuilderModule &cbm) const  {
@@ -43,10 +60,21 @@ ListExpr::ListExpr(const vector<Expr *> &v) : v(v) {}
 Expr::~Expr() = default;
 
 void LoopExpr::generate(ContextBuilderModule &cbm) const {
-    cout << "Loop" << endl;
-    this->body->generate(cbm);
-    cout << "Loop End" << endl;
+    llvm::BasicBlock *loopCondBB = llvm::BasicBlock::Create(*cbm.context, "loop cond", cbm.main);
+    llvm::BasicBlock *loopBodyBB = llvm::BasicBlock::Create(*cbm.context, "loop body", cbm.main);
+    llvm::BasicBlock *afterLoopBB = llvm::BasicBlock::Create(*cbm.context, "after loop", cbm.main);
+    cbm.builder->CreateBr(loopCondBB);
 
+    cbm.builder->SetInsertPoint(loopCondBB);
+    auto cond = cbm.builder->CreateICmpNE(getCurrentChar(cbm), cbm.getConstChar(0), "check loop condition");
+    cbm.builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
+
+
+    cbm.builder->SetInsertPoint(loopBodyBB);
+    body->generate(cbm);
+    cbm.builder->CreateBr(loopCondBB);
+
+    cbm.builder->SetInsertPoint(afterLoopBB);
 }
 
 LoopExpr::LoopExpr(  Expr* bbody) : body(std::unique_ptr<Expr>(bbody))  { }

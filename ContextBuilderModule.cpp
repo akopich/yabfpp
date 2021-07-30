@@ -37,7 +37,7 @@
 
 void ContextBuilderModule::generateEntryPoint() {
     llvm::FunctionType *mainType = llvm::FunctionType::get(builder->getInt32Ty(), false);
-    llvm::Function *main = llvm::Function::Create(mainType, llvm::Function::ExternalLinkage, "main", module.get());
+    main = llvm::Function::Create(mainType, llvm::Function::ExternalLinkage, "main", module.get());
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*context, "main", main);
     builder->SetInsertPoint(entry);
 }
@@ -109,16 +109,25 @@ void ContextBuilderModule::generateGetChar() {
     llvm::Function::Create(getCharType, llvm::Function::ExternalLinkage, "getchar", module.get());
 }
 
-llvm::Value *ContextBuilderModule::generateCallMalloc(llvm::Value *size) {
-    return builder->CreateCall(module->getFunction("malloc"), {size});
+llvm::Value *ContextBuilderModule::generateCallCalloc(llvm::Value *size) {
+    return builder->CreateCall(module->getFunction("calloc"), {size, getConstInt(8)});
 }
 
-void ContextBuilderModule::generateMalloc() {
-    std::vector<llvm::Type *> args {llvm::Type::getInt32Ty(*context) };
+void ContextBuilderModule::generateCalloc() {
+    std::vector<llvm::Type *> args { builder->getInt32Ty(), builder->getInt32Ty() };
     llvm::FunctionType *mallocType = llvm::FunctionType::get(builder->getInt8PtrTy(), args, false);
-    llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", module.get());
+    llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "calloc", module.get());
 }
 
+const int BELT_SIZE = 30000;
+
+void ContextBuilderModule::init() {
+    generateCalloc();
+    this->belt = generateCallCalloc(getConstInt(BELT_SIZE));
+    this->pointer = builder->CreateAlloca(builder->getInt32Ty());
+
+    builder->CreateStore(getConstInt(0), this->pointer);
+}
 
 ContextBuilderModule createContextBuilderModule() {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
