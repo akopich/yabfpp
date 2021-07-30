@@ -10,7 +10,7 @@
 
 class Expr {
 public:
-    virtual void generate(ContextBuilderModule& cbm) const = 0;
+    virtual void generate(BFMachine &machine) const = 0;
 
     virtual ~Expr();
 };
@@ -21,7 +21,7 @@ private:
 public:
     explicit MovePtrExpr(int steps);
 
-    void generate(ContextBuilderModule &cbm)  const  override;
+    void generate(BFMachine &machine)  const  override;
 };
 
 class AddExpr: public Expr {
@@ -30,17 +30,17 @@ private:
 public:
     explicit AddExpr(int add);
 
-    void generate(ContextBuilderModule &cbm) const  override;
+    void generate(BFMachine &machine) const  override;
 };
 
 class ReadExpr : public Expr {
 public:
-    void generate(ContextBuilderModule &cbm) const  override;
+    void generate(BFMachine &machine) const  override;
 };
 
 class PrintExpr : public Expr {
 public:
-    void generate(ContextBuilderModule &cbm) const override;
+    void generate(BFMachine &machine) const override;
 };
 
 class LoopExpr: public Expr {
@@ -49,7 +49,7 @@ private:
 public:
     explicit LoopExpr(  Expr* body);
 
-    void generate(ContextBuilderModule &cbm) const override;
+    void generate(BFMachine &machine) const override;
 };
 
 class ListExpr: public Expr {
@@ -63,7 +63,7 @@ public:
 
     ListExpr& operator=(const ListExpr& e) = delete;
 
-    void generate(ContextBuilderModule &cbm) const override;
+    void generate(BFMachine &machine) const override;
 
     ~ListExpr() override;
 };

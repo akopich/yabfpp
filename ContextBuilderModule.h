@@ -36,6 +36,9 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/APFloat.h"
+#include "BFMachine.h"
+
+class BFMachine;
 
 class ContextBuilderModule {
 private:
@@ -56,13 +59,11 @@ public:
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     std::unique_ptr<llvm::Module> module;
-    llvm::Value* belt;
-    llvm::Value* pointer;
     llvm::Function* main;
 
     llvm::BasicBlock* createBasicBlock(const std::string& s);
 
-    void init();
+    BFMachine init();
 
     void generateCallPutChar(llvm::Value* theChar);
 

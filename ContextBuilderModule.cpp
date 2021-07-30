@@ -33,6 +33,7 @@
 #include "llvm/ADT/APFloat.h"
 #include <iostream>
 #include "ContextBuilderModule.h"
+#include "BFMachine.h"
 
 
 void ContextBuilderModule::generateEntryPoint() {
@@ -122,12 +123,13 @@ void ContextBuilderModule::generateCalloc() {
 
 const int BELT_SIZE = 30000;
 
-void ContextBuilderModule::init() {
+BFMachine ContextBuilderModule::init() {
     generateCalloc();
-    this->belt = generateCallCalloc(getConstInt(BELT_SIZE));
-    this->pointer = builder->CreateAlloca(builder->getInt32Ty());
+    auto belt = generateCallCalloc(getConstInt(BELT_SIZE));
+    auto pointer = builder->CreateAlloca(builder->getInt32Ty());
 
-    builder->CreateStore(getConstInt(0), this->pointer);
+    builder->CreateStore(getConstInt(0), pointer);
+    return {belt, pointer, this};
 }
 
 llvm::BasicBlock *ContextBuilderModule::createBasicBlock(const std::string &s) {
