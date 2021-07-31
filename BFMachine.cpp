@@ -3,16 +3,30 @@
 //
 
 #include "BFMachine.h"
-#include "ContextBuilderModule.h"
 
 llvm::Value* BFMachine::getIndex() const {
     return cbm->CreateLoad(pointer);
 }
 
 llvm::Value* BFMachine::getCurrentChar() const {
-    return cbm->getCharArrayElement(belt, getIndex());
+    return cbm->getCharArrayElement(getBelt(), getIndex());
 }
 
 void BFMachine::setCurrentChar(llvm::Value* theChar) const {
-    cbm->setCharArrayElement(belt, getIndex(), theChar);
+    cbm->setCharArrayElement(getBelt(), getIndex(), theChar);
+}
+
+llvm::Value* BFMachine::getBeltSize() const {
+    return cbm->CreateLoad(beltSizePtr);
+}
+
+BFMachine::BFMachine(llvm::Value* beltPtr, llvm::Value* pointer, llvm::Value* beltSizePtr, ContextBuilderModule* cbm)
+        : beltPtr(beltPtr), pointer(pointer), beltSizePtr(beltSizePtr), cbm(cbm) {}
+
+llvm::Value* BFMachine::getBelt() const {
+    return cbm->CreateLoad(beltPtr);
+}
+
+void BFMachine::setBeltPtr(llvm::Value* belt) {
+    cbm->builder->CreateStore(belt, beltPtr);
 }

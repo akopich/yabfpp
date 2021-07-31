@@ -52,6 +52,8 @@ private:
 
     void generateGetChar() const;
 
+    void generateMemcpy() const;
+
     void return0FromMain() const;
 
     std::unique_ptr<llvm::LLVMContext> context;
@@ -69,11 +71,13 @@ public:
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
-    BFMachine init();
+    BFMachine init(const int beltSize);
 
     void generateCallPutChar(llvm::Value* theChar) const;
 
     void generateCallPrintfInt(llvm::Value* theInt) const;
+
+    void generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::Value* size) const;
 
     llvm::Value* generateCallCalloc(llvm::Value* size) const;
 

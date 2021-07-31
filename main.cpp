@@ -83,7 +83,7 @@ unique_ptr<Expr> parse(const string& s) {
 
 int main() {
     auto cbm = createContextBuilderModule();
-    auto machine = cbm.init();
+    auto machine = cbm.init(3);
     auto expr = parse(
             "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
     expr->generate(machine);

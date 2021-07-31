@@ -25,12 +25,22 @@
 class ContextBuilderModule;
 
 class BFMachine {
+private:
+    llvm::Value* beltPtr;
 public:
-    llvm::Value* belt;
     llvm::Value* pointer;
+    llvm::Value* beltSizePtr;
     ContextBuilderModule* cbm;
 
+    BFMachine(llvm::Value* beltPtr, llvm::Value* pointer, llvm::Value* beltSizePtr, ContextBuilderModule* cbm);
+
     [[nodiscard]] llvm::Value* getIndex() const;
+
+    [[nodiscard]] llvm::Value* getBelt() const;
+
+    void setBeltPtr(llvm::Value* belt);
+
+    [[nodiscard]] llvm::Value* getBeltSize() const;
 
     [[nodiscard]] llvm::Value* getCurrentChar() const;
 

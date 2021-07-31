@@ -105,19 +105,23 @@ void ContextBuilderModule::generateCalloc() const {
     llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "calloc", module.get());
 }
 
-const int BELT_SIZE = 30000;
-
-BFMachine ContextBuilderModule::init() {
+BFMachine ContextBuilderModule::init(const int beltSize) {
     generateCalloc();
-    auto belt = generateCallCalloc(getConstInt(BELT_SIZE));
+    auto belt = generateCallCalloc(getConstInt(beltSize));
     auto pointer = builder->CreateAlloca(builder->getInt32Ty());
-
     builder->CreateStore(getConstInt(0), pointer);
-    return {belt, pointer, this};
+
+    auto beltSizePtr = builder->CreateAlloca(builder->getInt32Ty());
+    builder->CreateStore(getConstInt(beltSize), beltSizePtr);
+
+    auto beltPtr = builder->CreateAlloca(builder->getInt8PtrTy());
+    builder->CreateStore(belt, beltPtr);
+
+    return {beltPtr, pointer, beltSizePtr, this};
 }
 
 llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) const {
-    return llvm::BasicBlock::Create(*context, "loop cond", main);
+    return llvm::BasicBlock::Create(*context, s, main);
 }
 
 ContextBuilderModule createContextBuilderModule() {
@@ -132,6 +136,7 @@ ContextBuilderModule createContextBuilderModule() {
     cbm.generateCalloc();
     cbm.generateGetChar();
     cbm.generateGetChar();
+    cbm.generateMemcpy();
 
     return cbm;
 }
@@ -148,4 +153,14 @@ llvm::Value* ContextBuilderModule::CreateLoad(llvm::Value* ptr) const {
 
 llvm::Value* ContextBuilderModule::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
     return builder->CreateAdd(lhs, rhs, name);
+}
+
+void ContextBuilderModule::generateMemcpy() const {
+    std::vector<llvm::Type*> args{builder->getInt8PtrTy(), builder->getInt8PtrTy(), builder->getInt32Ty()};
+    llvm::FunctionType* memcpyTy = llvm::FunctionType::get(builder->getInt8PtrTy(), args, false);
+    llvm::Function::Create(memcpyTy, llvm::Function::ExternalLinkage, "memcpy", module.get());
+}
+
+void ContextBuilderModule::generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::Value* size) const {
+    builder->CreateCall(module->getFunction("memcpy"), {dest, src, size});
 }

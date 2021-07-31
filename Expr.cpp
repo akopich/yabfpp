@@ -6,15 +6,33 @@
 
 using namespace std;
 
-void MovePtrExpr::generate(const BFMachine& machine) const {
+void MovePtrExpr::generate(BFMachine& machine) const {
     llvm::Value* index = machine.getIndex();
     auto newIndex = machine.cbm->CreateAdd(index, machine.cbm->getConstInt(this->steps), "move pointer");
+    llvm::Value* beltSize = machine.getBeltSize();
+    llvm::Value* needsToGrow = machine.cbm->builder->CreateICmpUGE(newIndex, beltSize,
+                                                                   "check if the beltPtr needs to grow");
+
+    auto doublingBeltBB = machine.cbm->createBasicBlock("Doubling the beltPtr");
+    auto afterDoublingBeltBB = machine.cbm->createBasicBlock("After doubling the beltPtr");
+    machine.cbm->builder->CreateCondBr(needsToGrow, doublingBeltBB, afterDoublingBeltBB);
+
+    machine.cbm->builder->SetInsertPoint(doublingBeltBB);
+    llvm::Value* newBeltSize = machine.cbm->builder->CreateMul(beltSize, machine.cbm->getConstInt(2));
+    llvm::Value* newBelt = machine.cbm->generateCallCalloc(newBeltSize);
+    machine.cbm->generateCallMemcpy(newBelt, machine.getBelt(), beltSize);
+    machine.cbm->builder->CreateStore(newBeltSize, machine.beltSizePtr);
+    machine.setBeltPtr(newBelt);
+
+    machine.cbm->builder->CreateBr(afterDoublingBeltBB);
+    machine.cbm->builder->SetInsertPoint(afterDoublingBeltBB);
+
     machine.cbm->builder->CreateStore(newIndex, machine.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(int steps) : steps(steps) {}
 
-void AddExpr::generate(const BFMachine& machine) const {
+void AddExpr::generate(BFMachine& machine) const {
     llvm::Value* theChar = machine.getCurrentChar();
     llvm::Value* newChar = machine.cbm->CreateAdd(theChar, machine.cbm->getConstChar((char) this->add), "add char");
     machine.setCurrentChar(newChar);
@@ -22,16 +40,16 @@ void AddExpr::generate(const BFMachine& machine) const {
 
 AddExpr::AddExpr(int add) : add(add) {}
 
-void ReadExpr::generate(const BFMachine& machine) const {
+void ReadExpr::generate(BFMachine& machine) const {
     llvm::Value* readChar = machine.cbm->generateCallGetChar();
     machine.setCurrentChar(readChar);
 }
 
-void PrintExpr::generate(const BFMachine& machine) const {
+void PrintExpr::generate(BFMachine& machine) const {
     machine.cbm->generateCallPutChar(machine.getCurrentChar());
 }
 
-void ListExpr::generate(const BFMachine& machine) const {
+void ListExpr::generate(BFMachine& machine) const {
     for_each(this->v.begin(), this->v.end(), [&](const Expr* e) {
         e->generate(machine);
     });
@@ -47,7 +65,7 @@ ListExpr::ListExpr(const vector<Expr*>& v) : v(v) {}
 
 Expr::~Expr() = default;
 
-void LoopExpr::generate(const BFMachine& machine) const {
+void LoopExpr::generate(BFMachine& machine) const {
     llvm::BasicBlock* loopCondBB = machine.cbm->createBasicBlock("loop cond");
     llvm::BasicBlock* loopBodyBB = machine.cbm->createBasicBlock("loop body");
     llvm::BasicBlock* afterLoopBB = machine.cbm->createBasicBlock("after loop");
