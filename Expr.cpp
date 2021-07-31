@@ -9,23 +9,8 @@ using namespace std;
 void MovePtrExpr::generate(BFMachine& machine) const {
     llvm::Value* index = machine.getIndex();
     auto newIndex = machine.cbm->CreateAdd(index, machine.cbm->getConstInt(this->steps), "move pointer");
-    llvm::Value* beltSize = machine.getBeltSize();
-    llvm::Value* needsToGrow = machine.cbm->builder->CreateICmpUGE(newIndex, beltSize,
-                                                                   "check if the beltPtr needs to grow");
 
-    auto doublingBeltBB = machine.cbm->createBasicBlock("Doubling the beltPtr");
-    auto afterDoublingBeltBB = machine.cbm->createBasicBlock("After doubling the beltPtr");
-    machine.cbm->builder->CreateCondBr(needsToGrow, doublingBeltBB, afterDoublingBeltBB);
-
-    machine.cbm->builder->SetInsertPoint(doublingBeltBB);
-    llvm::Value* newBeltSize = machine.cbm->builder->CreateMul(beltSize, machine.cbm->getConstInt(2));
-    llvm::Value* newBelt = machine.cbm->generateCallCalloc(newBeltSize);
-    machine.cbm->generateCallMemcpy(newBelt, machine.getBelt(), beltSize);
-    machine.cbm->builder->CreateStore(newBeltSize, machine.beltSizePtr);
-    machine.setBeltPtr(newBelt);
-
-    machine.cbm->builder->CreateBr(afterDoublingBeltBB);
-    machine.cbm->builder->SetInsertPoint(afterDoublingBeltBB);
+    machine.cbm->generateCallBeltDoublingFunction(machine, newIndex);
 
     machine.cbm->builder->CreateStore(newIndex, machine.pointer);
 }

@@ -25,9 +25,8 @@
 class ContextBuilderModule;
 
 class BFMachine {
-private:
-    llvm::Value* beltPtr;
 public:
+    llvm::Value* beltPtr;
     llvm::Value* pointer;
     llvm::Value* beltSizePtr;
     ContextBuilderModule* cbm;

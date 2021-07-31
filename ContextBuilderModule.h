@@ -69,6 +69,8 @@ public:
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
+    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s, llvm::Function* function) const;
+
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
     BFMachine init(const int beltSize);
@@ -98,6 +100,10 @@ public:
     llvm::Value* CreateLoad(llvm::Value* ptr) const;
 
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
+
+    void generateBeltDoublingFunction();
+
+    void generateCallBeltDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
 };
 
 ContextBuilderModule createContextBuilderModule();

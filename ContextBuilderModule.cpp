@@ -27,18 +27,60 @@ void ContextBuilderModule::generateEntryPoint() {
     builder->SetInsertPoint(entry);
 }
 
+void ContextBuilderModule::generateBeltDoublingFunction() {
+    std::vector<llvm::Type*> agrs = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
+                                     builder->getInt32Ty(),
+                                     llvm::PointerType::get(builder->getInt32Ty(), 0)};
+    llvm::FunctionType* doublerType = llvm::FunctionType::get(builder->getVoidTy(), agrs, false);
+    llvm::Function* doubler = llvm::Function::Create(doublerType, llvm::Function::ExternalLinkage, "doubleBeltIfNeeded",
+                                                     module.get());
+    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(*context, "doubleBeltIfNeeded", doubler);
+    builder->SetInsertPoint(functionBody);
+
+    auto it = doubler->args().begin();
+
+    llvm::Value* beltPtr = it;
+    llvm::Value* newIndex = it + 1;
+    llvm::Value* beltSizePtr = it + 2;
+
+    llvm::Value* beltSize = builder->CreateLoad(beltSizePtr);
+    llvm::Value* belt = builder->CreateLoad(beltPtr);
+    llvm::Value* needsToGrow = builder->CreateICmpUGE(newIndex, beltSize, "check if the beltPtr needs to grow");
+
+    auto doublingBeltBB = createBasicBlock("Doubling the beltPtr", doubler);
+    auto afterDoublingBeltBB = createBasicBlock("After doubling the beltPtr", doubler);
+    builder->CreateCondBr(needsToGrow, doublingBeltBB, afterDoublingBeltBB);
+
+    builder->SetInsertPoint(doublingBeltBB);
+    llvm::Value* newBeltSize = builder->CreateMul(beltSize, getConstInt(2));
+    llvm::Value* newBelt = generateCallCalloc(newBeltSize);
+    generateCallMemcpy(newBelt, belt, beltSize);
+    builder->CreateStore(newBeltSize, beltSizePtr);
+    builder->CreateStore(newBelt, beltPtr);
+
+    builder->CreateBr(afterDoublingBeltBB);
+    builder->SetInsertPoint(afterDoublingBeltBB);
+
+
+    builder->CreateRetVoid();
+}
+
+
+void ContextBuilderModule::generateCallBeltDoublingFunction(BFMachine& machine, llvm::Value* newIndex) {
+    std::vector<llvm::Value*> printArgs = {machine.beltPtr, newIndex, machine.beltSizePtr};
+    builder->CreateCall(module->getFunction("doubleBeltIfNeeded"), printArgs);
+}
+
+
 void ContextBuilderModule::generatePrintfInt() const {
-    std::vector<llvm::Type*> args;
-    args.push_back(llvm::Type::getInt8PtrTy(*context));
+    std::vector<llvm::Type*> args = {llvm::Type::getInt8PtrTy(*context)};
     llvm::FunctionType* printfType = llvm::FunctionType::get(builder->getInt32Ty(), args, true);
     llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", module.get());
 }
 
 void ContextBuilderModule::generateCallPrintfInt(llvm::Value* theInt) const {
-    std::vector<llvm::Value*> printArgs;
     llvm::Value* formatStr = builder->CreateGlobalStringPtr("%d\n");
-    printArgs.push_back(formatStr);
-    printArgs.push_back(theInt);
+    std::vector<llvm::Value*> printArgs = {formatStr, theInt};
     builder->CreateCall(module->getFunction("printf"), printArgs);
 }
 
@@ -106,7 +148,6 @@ void ContextBuilderModule::generateCalloc() const {
 }
 
 BFMachine ContextBuilderModule::init(const int beltSize) {
-    generateCalloc();
     auto belt = generateCallCalloc(getConstInt(beltSize));
     auto pointer = builder->CreateAlloca(builder->getInt32Ty());
     builder->CreateStore(getConstInt(0), pointer);
@@ -120,8 +161,8 @@ BFMachine ContextBuilderModule::init(const int beltSize) {
     return {beltPtr, pointer, beltSizePtr, this};
 }
 
-llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) const {
-    return llvm::BasicBlock::Create(*context, s, main);
+llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s, llvm::Function* function) const {
+    return llvm::BasicBlock::Create(*context, s, function);
 }
 
 ContextBuilderModule createContextBuilderModule() {
@@ -130,13 +171,15 @@ ContextBuilderModule createContextBuilderModule() {
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>("compiler", *context);
     ContextBuilderModule cbm(move(context), move(module), move(builder));
 
-    cbm.generateEntryPoint();
+
     cbm.generatePrintfInt();
     cbm.generatePutChar();
     cbm.generateCalloc();
     cbm.generateGetChar();
     cbm.generateGetChar();
     cbm.generateMemcpy();
+    cbm.generateBeltDoublingFunction();
+    cbm.generateEntryPoint();
 
     return cbm;
 }
@@ -163,4 +206,8 @@ void ContextBuilderModule::generateMemcpy() const {
 
 void ContextBuilderModule::generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::Value* size) const {
     builder->CreateCall(module->getFunction("memcpy"), {dest, src, size});
+}
+
+llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) const {
+    return createBasicBlock(s, main);
 }
