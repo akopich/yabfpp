@@ -22,4 +22,4 @@ link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 execute_process(COMMAND llvm-config --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS)
 string(STRIP ${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)
 
-add_executable(yabfpp main.cpp Expr.cpp Expr.h ContextBuilderModule.h ContextBuilderModule.cpp BFMachine.cpp BFMachine.h)
+add_executable(yabfpp main.cpp Expr.cpp Expr.h ContextBuilderModule.h ContextBuilderModule.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp)
