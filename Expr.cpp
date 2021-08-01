@@ -73,21 +73,14 @@ void LoopExpr::generate(BFMachine& machine) const {
 LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
 
 void WriteToVariable::generate(BFMachine& machine) const {
-    llvm::Value* ptr;
-    auto it = machine.variableName2Ptr.find(name);
-    if (it == machine.variableName2Ptr.end()) {
-        ptr = machine.cbm->builder->CreateAlloca(machine.cbm->builder->getInt8Ty());
-        machine.variableName2Ptr[name] = ptr;
-    } else {
-        ptr = it->second;
-    }
+    llvm::Value* ptr = machine.getVariablePtr(name);
     machine.cbm->builder->CreateStore(machine.getCurrentChar(), ptr);
 }
 
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
 
 void ReadFromVariable::generate(BFMachine& machine) const {
-    llvm::Value* ptr = machine.variableName2Ptr[name]; // TODO emit an error message if not found
+    llvm::Value* ptr = machine.getVariablePtr(name);
     auto variableContent = machine.cbm->builder->CreateLoad(ptr);
     machine.setCurrentChar(variableContent);
 }

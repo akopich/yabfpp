@@ -30,3 +30,23 @@ llvm::Value* BFMachine::getBelt() const {
 void BFMachine::setBeltPtr(llvm::Value* belt) {
     cbm->builder->CreateStore(belt, beltPtr);
 }
+
+/**
+ * Does not initialize the pointee
+ *
+ * @param name
+ * @return
+ */
+llvm::Value* BFMachine::getVariablePtr(const std::string& name) {
+    auto it = variableName2Ptr.find(name);
+    if (it != variableName2Ptr.end()) {
+        return it->second;
+    }
+    auto ptr = cbm->builder->CreateAlloca(cbm->builder->getInt8Ty());
+    variableName2Ptr[name] = ptr;
+    return ptr;
+}
+
+llvm::Value* BFMachine::getVariableValue(const std::string& name) {
+    return cbm->builder->CreateLoad(getVariablePtr(name));
+}

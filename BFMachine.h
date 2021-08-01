@@ -45,6 +45,10 @@ public:
     [[nodiscard]] llvm::Value* getCurrentChar() const;
 
     void setCurrentChar(llvm::Value* theChar) const;
+
+    llvm::Value* getVariablePtr(const std::string& name);
+
+    llvm::Value* getVariableValue(const std::string& name);
 };
 
 
