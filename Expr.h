@@ -30,11 +30,11 @@ public:
     llvm::Value* generate(BFMachine& machine) const override;
 };
 
-class VarableInt8Expr : public Int8Expr {
+class VariableInt8Expr : public Int8Expr {
 private:
     std::string name;
 public:
-    explicit VarableInt8Expr(std::string name);
+    explicit VariableInt8Expr(std::string name);
 
     llvm::Value* generate(BFMachine& machine) const override;
 };

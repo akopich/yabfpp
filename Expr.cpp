@@ -90,11 +90,11 @@ void ReadFromVariable::generate(BFMachine& machine) const {
 ReadFromVariable::ReadFromVariable(string name) : name(std::move(name)) {}
 
 
-llvm::Value* VarableInt8Expr::generate(BFMachine& machine) const {
+llvm::Value* VariableInt8Expr::generate(BFMachine& machine) const {
     return machine.getVariableValue(name);
 }
 
-VarableInt8Expr::VarableInt8Expr(string name) : name(std::move(name)) {}
+VariableInt8Expr::VariableInt8Expr(string name) : name(std::move(name)) {}
 
 llvm::Value* ConstInt8Expr::generate(BFMachine& machine) const {
     return machine.cbm->getConstChar(value);
