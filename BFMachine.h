@@ -30,6 +30,7 @@ public:
     llvm::Value* pointer;
     llvm::Value* beltSizePtr;
     ContextBuilderModule* cbm;
+    std::map<std::string, llvm::Value*> variableName2Ptr;
 
     BFMachine(llvm::Value* beltPtr, llvm::Value* pointer, llvm::Value* beltSizePtr, ContextBuilderModule* cbm);
 

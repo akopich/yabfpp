@@ -68,5 +68,23 @@ public:
     ~ListExpr() override;
 };
 
+class WriteToVariable : public Expr {
+private:
+    std::string name;
+public:
+    explicit WriteToVariable(std::string name);
+
+    void generate(BFMachine& machine) const override;
+};
+
+class ReadFromVariable : public Expr {
+private:
+    std::string name;
+public:
+    explicit ReadFromVariable(std::string name);
+
+    void generate(BFMachine& machine) const override;
+};
+
 
 #endif //YABF_EXPR_H

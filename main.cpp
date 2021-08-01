@@ -37,10 +37,16 @@ using namespace std;
 
 Expr* parse(const string& s, int& i);
 
+string parseVariableName(const string& s, int& i);
+
 Expr* parseToken(const string& s, int& i) {
     char c = s[i];
     i++;
     switch (c) {
+        case '^':
+            return new WriteToVariable(parseVariableName(s, i));
+        case '_':
+            return new ReadFromVariable(parseVariableName(s, i));
         case '+':
             return new AddExpr(1);
         case '-':
@@ -58,6 +64,15 @@ Expr* parseToken(const string& s, int& i) {
             i++;
             return loop;
     }
+}
+
+string parseVariableName(const string& s, int& i) {
+    string name;
+    while (i < s.size() && isalpha(s[i])) {
+        name += s[i];
+        i++;
+    }
+    return name;
 }
 
 Expr* parse(const string& s, int& i) {
