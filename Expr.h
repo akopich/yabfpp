@@ -19,7 +19,7 @@ class Int8Expr {
 public:
     virtual llvm::Value* generate(BFMachine& machine) const = 0;
 
-    virtual ~Int8Expr();
+    virtual ~Int8Expr() = default;
 };
 
 class MinusInt8Expr : public Int8Expr {
@@ -50,9 +50,9 @@ public:
 
 class MovePtrExpr : public Expr {
 private:
-    int steps{};
+    std::unique_ptr<Int8Expr> steps;
 public:
-    explicit MovePtrExpr(int steps);
+    explicit MovePtrExpr(std::unique_ptr<Int8Expr> steps);
 
     void generate(BFMachine& machine) const override;
 };

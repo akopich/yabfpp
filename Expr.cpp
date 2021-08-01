@@ -10,14 +10,17 @@ using namespace std;
 
 void MovePtrExpr::generate(BFMachine& machine) const {
     llvm::Value* index = machine.getIndex();
-    auto newIndex = machine.cbm->CreateAdd(index, machine.cbm->getConstInt(this->steps), "move pointer");
+    llvm::Value* stepValueI8 = steps->generate(machine);
+    llvm::Value* stepValueI32 = machine.cbm->builder->CreateIntCast(stepValueI8, machine.cbm->builder->getInt32Ty(),
+                                                                    true);
+    auto newIndex = machine.cbm->CreateAdd(index, stepValueI32, "move pointer");
 
     machine.cbm->generateCallBeltDoublingFunction(machine, newIndex);
 
     machine.cbm->builder->CreateStore(newIndex, machine.pointer);
 }
 
-MovePtrExpr::MovePtrExpr(int steps) : steps(steps) {}
+MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
 
 void AddExpr::generate(BFMachine& machine) const {
     llvm::Value* theChar = machine.getCurrentChar();
@@ -106,4 +109,3 @@ llvm::Value* MinusInt8Expr::generate(BFMachine& machine) const {
 
 MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
-Int8Expr::~Int8Expr() {}

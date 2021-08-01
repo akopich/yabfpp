@@ -1,39 +1,18 @@
 #include <iostream>
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/Optional.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TargetRegistry.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Target/TargetOptions.h"
 #include "ContextBuilderModule.h"
 #include <algorithm>
 #include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
 #include <memory>
-#include <string>
 #include <vector>
+
 #include "ContextBuilderModule.h"
 #include "Expr.h"
 
 using namespace llvm;
 using namespace std;
+
+
+unique_ptr<Int8Expr> parseTrailingVariable(const string& s, int& i);
 
 Expr* parse(ContextBuilderModule& cbm, const string& s, int& i);
 
@@ -47,23 +26,11 @@ Expr* parseToken(ContextBuilderModule& cbm, const string& s, int& i) {
             return new WriteToVariable(parseVariableName(s, i));
         case '_':
             return new ReadFromVariable(parseVariableName(s, i));
-        case '+': {
-            auto varname = parseVariableName(s, i);
-            std::unique_ptr<Int8Expr> add;
-            if (varname.empty()) {
-                add = make_unique<ConstInt8Expr>(1);
-            } else {
-                add = make_unique<VarableInt8Expr>(varname);
-            }
-            return new AddExpr(move(add));
-        }
+        case '+':
         case '-': {
-            auto varname = parseVariableName(s, i);
-            std::unique_ptr<Int8Expr> add;
-            if (varname.empty()) {
-                add = make_unique<ConstInt8Expr>(-1);
-            } else {
-                add = make_unique<MinusInt8Expr>(make_unique<VarableInt8Expr>(varname));
+            auto add = parseTrailingVariable(s, i);
+            if (c == '-') {
+                add = make_unique<MinusInt8Expr>(move(add));
             }
             return new AddExpr(move(add));
         }
@@ -72,15 +39,20 @@ Expr* parseToken(ContextBuilderModule& cbm, const string& s, int& i) {
         case ',':
             return new ReadExpr();
         case '<':
-            return new MovePtrExpr(-1);
-        case '>':
-            return new MovePtrExpr(1);
+        case '>': {
+            auto step = parseTrailingVariable(s, i);
+            if (c == '<') {
+                step = make_unique<MinusInt8Expr>(move(step));
+            }
+            return new MovePtrExpr(move(step));
+        }
         case '[':
             auto loop = new LoopExpr(parse(cbm, s, i));
             i++;
             return loop;
     }
 }
+
 
 template<typename P>
 string parseWithPredicate(const string& s, int& i, P predicate) {
@@ -104,6 +76,15 @@ Expr* parse(ContextBuilderModule& cbm, const string& s, int& i) {
     return new ListExpr(v);
 }
 
+unique_ptr<Int8Expr> parseTrailingVariable(const string& s, int& i) {
+    auto varname = parseVariableName(s, i);
+    if (varname.empty()) {
+        return make_unique<ConstInt8Expr>(1);
+    } else {
+        return make_unique<VarableInt8Expr>(varname);
+    }
+}
+
 
 string preprocessor(const string& s) {
     string res = s;
@@ -120,7 +101,7 @@ int main() {
     auto cbm = createContextBuilderModule();
     auto machine = cbm.init(2);
 //    auto expr = parse(cbm,"++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
-    auto expr = parse(cbm, ",^x>,-x^y>,+y.");
+    auto expr = parse(cbm, ",^x>x,-x^y>y,+y.");
     expr->generate(machine);
     cbm.finalizeAndPrintIRtoFile("/home/valerij/test.ll");
     return 0;
