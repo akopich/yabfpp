@@ -21,11 +21,12 @@ MovePtrExpr::MovePtrExpr(int steps) : steps(steps) {}
 
 void AddExpr::generate(BFMachine& machine) const {
     llvm::Value* theChar = machine.getCurrentChar();
-    llvm::Value* newChar = machine.cbm->CreateAdd(theChar, machine.cbm->getConstChar((char) this->add), "add char");
+    llvm::Value* newChar = machine.cbm->CreateAdd(theChar, this->add->generate(machine), "add char");
     machine.setCurrentChar(newChar);
 }
 
-AddExpr::AddExpr(int add) : add(add) {}
+AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
+
 
 void ReadExpr::generate(BFMachine& machine) const {
     llvm::Value* readChar = machine.cbm->generateCallGetChar();
@@ -80,16 +81,29 @@ void WriteToVariable::generate(BFMachine& machine) const {
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
 
 void ReadFromVariable::generate(BFMachine& machine) const {
-    llvm::Value* ptr = machine.getVariablePtr(name);
-    auto variableContent = machine.cbm->builder->CreateLoad(ptr);
-    machine.setCurrentChar(variableContent);
+    machine.setCurrentChar(machine.getVariableValue(name));
 }
 
 ReadFromVariable::ReadFromVariable(string name) : name(std::move(name)) {}
 
 
+llvm::Value* VarableInt8Expr::generate(BFMachine& machine) const {
+    return machine.getVariableValue(name);
+}
 
+VarableInt8Expr::VarableInt8Expr(string name) : name(std::move(name)) {}
 
+llvm::Value* ConstInt8Expr::generate(BFMachine& machine) const {
+    return machine.cbm->getConstChar(value);
+}
 
+ConstInt8Expr::ConstInt8Expr(char value) : value(value) {}
 
+llvm::Value* MinusInt8Expr::generate(BFMachine& machine) const {
+    auto beforeMinus = value->generate(machine);
+    return machine.cbm->builder->CreateMul(beforeMinus, machine.cbm->getConstChar(-1));
+}
 
+MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
+
+Int8Expr::~Int8Expr() {}

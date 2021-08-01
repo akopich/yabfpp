@@ -15,6 +15,39 @@ public:
     virtual ~Expr();
 };
 
+class Int8Expr {
+public:
+    virtual llvm::Value* generate(BFMachine& machine) const = 0;
+
+    virtual ~Int8Expr();
+};
+
+class MinusInt8Expr : public Int8Expr {
+    std::unique_ptr<Int8Expr> value;
+public:
+    explicit MinusInt8Expr(std::unique_ptr<Int8Expr> value);
+
+    llvm::Value* generate(BFMachine& machine) const override;
+};
+
+class VarableInt8Expr : public Int8Expr {
+private:
+    std::string name;
+public:
+    explicit VarableInt8Expr(std::string name);
+
+    llvm::Value* generate(BFMachine& machine) const override;
+};
+
+class ConstInt8Expr : public Int8Expr {
+private:
+    char value;
+public:
+    explicit ConstInt8Expr(char value);
+
+    llvm::Value* generate(BFMachine& machine) const override;
+};
+
 class MovePtrExpr : public Expr {
 private:
     int steps{};
@@ -26,9 +59,9 @@ public:
 
 class AddExpr : public Expr {
 private:
-    int add;
+    std::unique_ptr<Int8Expr> add;
 public:
-    explicit AddExpr(int add);
+    explicit AddExpr(std::unique_ptr<Int8Expr> add);
 
     void generate(BFMachine& machine) const override;
 };

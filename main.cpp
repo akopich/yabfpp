@@ -35,11 +35,11 @@
 using namespace llvm;
 using namespace std;
 
-Expr* parse(const string& s, int& i);
+Expr* parse(ContextBuilderModule& cbm, const string& s, int& i);
 
 string parseVariableName(const string& s, int& i);
 
-Expr* parseToken(const string& s, int& i) {
+Expr* parseToken(ContextBuilderModule& cbm, const string& s, int& i) {
     char c = s[i];
     i++;
     switch (c) {
@@ -47,10 +47,26 @@ Expr* parseToken(const string& s, int& i) {
             return new WriteToVariable(parseVariableName(s, i));
         case '_':
             return new ReadFromVariable(parseVariableName(s, i));
-        case '+':
-            return new AddExpr(1);
-        case '-':
-            return new AddExpr(-1);
+        case '+': {
+            auto varname = parseVariableName(s, i);
+            std::unique_ptr<Int8Expr> add;
+            if (varname.empty()) {
+                add = make_unique<ConstInt8Expr>(1);
+            } else {
+                add = make_unique<VarableInt8Expr>(varname);
+            }
+            return new AddExpr(move(add));
+        }
+        case '-': {
+            auto varname = parseVariableName(s, i);
+            std::unique_ptr<Int8Expr> add;
+            if (varname.empty()) {
+                add = make_unique<ConstInt8Expr>(-1);
+            } else {
+                add = make_unique<MinusInt8Expr>(make_unique<VarableInt8Expr>(varname));
+            }
+            return new AddExpr(move(add));
+        }
         case '.':
             return new PrintExpr();
         case ',':
@@ -60,25 +76,30 @@ Expr* parseToken(const string& s, int& i) {
         case '>':
             return new MovePtrExpr(1);
         case '[':
-            auto loop = new LoopExpr(parse(s, i));
+            auto loop = new LoopExpr(parse(cbm, s, i));
             i++;
             return loop;
     }
 }
 
-string parseVariableName(const string& s, int& i) {
+template<typename P>
+string parseWithPredicate(const string& s, int& i, P predicate) {
     string name;
-    while (i < s.size() && isalpha(s[i])) {
+    while (i < s.size() && predicate(s[i])) {
         name += s[i];
         i++;
     }
     return name;
 }
 
-Expr* parse(const string& s, int& i) {
+string parseVariableName(const string& s, int& i) {
+    return parseWithPredicate(s, i, [](const char c) { return isalpha(c); });
+}
+
+Expr* parse(ContextBuilderModule& cbm, const string& s, int& i) {
     vector<Expr*> v;
     while (i < s.size() && s[i] != ']') {
-        v.push_back(parseToken(s, i));
+        v.push_back(parseToken(cbm, s, i));
     }
     return new ListExpr(v);
 }
@@ -90,19 +111,17 @@ string preprocessor(const string& s) {
     return res;
 }
 
-
-unique_ptr<Expr> parse(const string& s) {
+unique_ptr<Expr> parse(ContextBuilderModule& cbm, const string& s) {
     int i = 0;
-    return unique_ptr<Expr>(parse(preprocessor(s), i));
+    return unique_ptr<Expr>(parse(cbm, preprocessor(s), i));
 }
 
 int main() {
     auto cbm = createContextBuilderModule();
     auto machine = cbm.init(2);
-    auto expr = parse(
-            "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
+//    auto expr = parse(cbm,"++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.");
+    auto expr = parse(cbm, ",^x>,-x^y>,+y.");
     expr->generate(machine);
     cbm.finalizeAndPrintIRtoFile("/home/valerij/test.ll");
-
     return 0;
 }
