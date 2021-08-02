@@ -19,7 +19,6 @@ std::optional<std::string> readFile(const std::string& inputPath) {
     for (std::string line; getline(input, line);) {
         program += line.substr(0, line.find(COMMENT_SEPARATOR, 0));
     }
-    input >> program;
     return program;
 }
 
