@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <cctype>
 #include <algorithm>
-#include <iostream>
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/TargetSelect.h"
