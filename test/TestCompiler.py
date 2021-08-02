@@ -28,7 +28,11 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(os.path.isfile(pathLL))
         self.sh(f"clang {pathLL} -o {pathBinary}")
         self.assertTrue(os.path.isfile(pathBinary))
-        subprocess.Popen([pathBinary], stdin=open(pathIn, "r"), stdout=open(pathOut, "w")).wait()
+        fileIn = open(pathIn, "r")
+        fileOut = open(pathOut, "w")
+        subprocess.Popen([pathBinary], stdin=fileIn, stdout=fileOut).wait()
+        fileIn.close()
+        fileOut.close()
         self.assertTrue(filecmp.cmp(pathOut, pathExpected, shallow=True), msg=f'{pathNoExtension} wrong output')
 
     def getPaths(self, programPath):
