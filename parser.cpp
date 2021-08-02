@@ -89,7 +89,7 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i) {
     }
 }
 
-std::string preprocessor(const std::string& s) {
+std::string removeWhetespaces(const std::string& s) {
     std::string res = s;
     res.erase(std::remove_if(res.begin(), res.end(), ::isspace), res.end());
     return res;
@@ -97,5 +97,5 @@ std::string preprocessor(const std::string& s) {
 
 std::unique_ptr<Expr> parse(ContextBuilderModule& cbm, const std::string& s) {
     int i = 0;
-    return std::unique_ptr<Expr>(parse(cbm, preprocessor(s), i));
+    return std::unique_ptr<Expr>(parse(cbm, removeWhetespaces(s), i));
 }

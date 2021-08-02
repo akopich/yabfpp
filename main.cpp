@@ -11,10 +11,14 @@ using namespace boost;
 namespace po = boost::program_options;
 
 std::optional<std::string> readFile(const std::string& inputPath) {
+    const char COMMENT_SEPARATOR = ';';
     std::ifstream input(inputPath);
     if (!input.good())
         return std::nullopt;
     std::string program;
+    for (std::string line; getline(input, line);) {
+        program += line.substr(0, line.find(COMMENT_SEPARATOR, 0));
+    }
     input >> program;
     return program;
 }
