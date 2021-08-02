@@ -31,12 +31,15 @@ std::optional<std::string> readFile(const std::string& inputPath) {
 int main(int ac, char* av[]) {
     std::string inputPath;
     std::string outPath;
+    int initialBeltSize;
 
     po::options_description desc("CLI options");
+
     desc.add_options()
             ("help", "produce help message")
             ("input-file", po::value<std::string>(&inputPath), "input file")
-            ("output-file,o", po::value<std::string>(&outPath)->default_value("a.ll"), "float value");
+            ("output-file,o", po::value<std::string>(&outPath)->default_value("a.ll"), "Output file name.")
+            ("belt-size,b", po::value<int>(&initialBeltSize)->default_value(30000), "Initial belt size.");
 
     po::positional_options_description p;
     p.add("input-file", -1);
@@ -46,7 +49,7 @@ int main(int ac, char* av[]) {
     po::notify(vm);
 
     if (vm.count("help") > 0) {
-        std::cout << "Usage: options_description [options]\n";
+        std::cout << "Usage: yabfpp [options] file" << std::endl;
         std::cout << desc;
         return 0;
     }
@@ -64,7 +67,7 @@ int main(int ac, char* av[]) {
     }
 
     auto cbm = createContextBuilderModule();
-    auto machine = cbm.init(2);
+    auto machine = cbm.init(initialBeltSize);
     auto expr = parse(cbm, program.value());
     expr->generate(machine);
     cbm.finalizeAndPrintIRtoFile(outPath);
