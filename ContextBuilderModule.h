@@ -72,7 +72,7 @@ public:
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
-    BFMachine init(const int beltSize);
+    BFMachine init(int tapeSize);
 
     void generateCallPutChar(llvm::Value* theChar) const;
 
@@ -100,9 +100,9 @@ public:
 
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
 
-    void generateBeltDoublingFunction();
+    void generateTapeDoublingFunction();
 
-    void generateCallBeltDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
+    void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
 };
 
 ContextBuilderModule createContextBuilderModule();

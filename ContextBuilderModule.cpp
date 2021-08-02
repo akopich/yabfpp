@@ -27,48 +27,48 @@ void ContextBuilderModule::generateEntryPoint() {
     builder->SetInsertPoint(entry);
 }
 
-void ContextBuilderModule::generateBeltDoublingFunction() {
+void ContextBuilderModule::generateTapeDoublingFunction() {
     std::vector<llvm::Type*> agrs = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
                                      builder->getInt32Ty(),
                                      llvm::PointerType::get(builder->getInt32Ty(), 0)};
     llvm::FunctionType* doublerType = llvm::FunctionType::get(builder->getVoidTy(), agrs, false);
-    llvm::Function* doubler = llvm::Function::Create(doublerType, llvm::Function::ExternalLinkage, "doubleBeltIfNeeded",
+    llvm::Function* doubler = llvm::Function::Create(doublerType, llvm::Function::ExternalLinkage, "doubleTapeIfNeeded",
                                                      module.get());
-    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(*context, "doubleBeltIfNeeded", doubler);
+    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(*context, "doubleTapeIfNeeded", doubler);
     builder->SetInsertPoint(functionBody);
 
     auto it = doubler->args().begin();
 
-    llvm::Value* beltPtr = it;
+    llvm::Value* tapePtr = it;
     llvm::Value* newIndex = it + 1;
-    llvm::Value* beltSizePtr = it + 2;
+    llvm::Value* tapeSizePtr = it + 2;
 
-    llvm::Value* beltSize = builder->CreateLoad(beltSizePtr);
-    llvm::Value* belt = builder->CreateLoad(beltPtr);
-    llvm::Value* needsToGrow = builder->CreateICmpUGE(newIndex, beltSize, "check if the beltPtr needs to grow");
+    llvm::Value* tapeSize = builder->CreateLoad(tapeSizePtr);
+    llvm::Value* tape = builder->CreateLoad(tapePtr);
+    llvm::Value* needsToGrow = builder->CreateICmpUGE(newIndex, tapeSize, "check if the tapePtr needs to grow");
 
-    auto doublingBeltBB = createBasicBlock("Doubling the beltPtr", doubler);
-    auto afterDoublingBeltBB = createBasicBlock("After doubling the beltPtr", doubler);
-    builder->CreateCondBr(needsToGrow, doublingBeltBB, afterDoublingBeltBB);
+    auto doublingTapeBB = createBasicBlock("Doubling the tapePtr", doubler);
+    auto afterDoublingTapeBB = createBasicBlock("After doubling the tapePtr", doubler);
+    builder->CreateCondBr(needsToGrow, doublingTapeBB, afterDoublingTapeBB);
 
-    builder->SetInsertPoint(doublingBeltBB);
-    llvm::Value* newBeltSize = builder->CreateMul(beltSize, getConstInt(2));
-    llvm::Value* newBelt = generateCallCalloc(newBeltSize);
-    generateCallMemcpy(newBelt, belt, beltSize);
-    builder->CreateStore(newBeltSize, beltSizePtr);
-    builder->CreateStore(newBelt, beltPtr);
+    builder->SetInsertPoint(doublingTapeBB);
+    llvm::Value* newTapeSize = builder->CreateMul(tapeSize, getConstInt(2));
+    llvm::Value* newTape = generateCallCalloc(newTapeSize);
+    generateCallMemcpy(newTape, tape, tapeSize);
+    builder->CreateStore(newTapeSize, tapeSizePtr);
+    builder->CreateStore(newTape, tapePtr);
 
-    builder->CreateBr(afterDoublingBeltBB);
-    builder->SetInsertPoint(afterDoublingBeltBB);
+    builder->CreateBr(afterDoublingTapeBB);
+    builder->SetInsertPoint(afterDoublingTapeBB);
 
 
     builder->CreateRetVoid();
 }
 
 
-void ContextBuilderModule::generateCallBeltDoublingFunction(BFMachine& machine, llvm::Value* newIndex) {
-    std::vector<llvm::Value*> printArgs = {machine.beltPtr, newIndex, machine.beltSizePtr};
-    builder->CreateCall(module->getFunction("doubleBeltIfNeeded"), printArgs);
+void ContextBuilderModule::generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) {
+    std::vector<llvm::Value*> printArgs = {machine.tapePtr, newIndex, machine.tapeSizePtr};
+    builder->CreateCall(module->getFunction("doubleTapeIfNeeded"), printArgs);
 }
 
 
@@ -147,18 +147,18 @@ void ContextBuilderModule::generateCalloc() const {
     llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "calloc", module.get());
 }
 
-BFMachine ContextBuilderModule::init(const int beltSize) {
-    auto belt = generateCallCalloc(getConstInt(beltSize));
+BFMachine ContextBuilderModule::init(const int tapeSize) {
+    auto tape = generateCallCalloc(getConstInt(tapeSize));
     auto pointer = builder->CreateAlloca(builder->getInt32Ty());
     builder->CreateStore(getConstInt(0), pointer);
 
-    auto beltSizePtr = builder->CreateAlloca(builder->getInt32Ty());
-    builder->CreateStore(getConstInt(beltSize), beltSizePtr);
+    auto tapeSizePtr = builder->CreateAlloca(builder->getInt32Ty());
+    builder->CreateStore(getConstInt(tapeSize), tapeSizePtr);
 
-    auto beltPtr = builder->CreateAlloca(builder->getInt8PtrTy());
-    builder->CreateStore(belt, beltPtr);
+    auto tapePtr = builder->CreateAlloca(builder->getInt8PtrTy());
+    builder->CreateStore(tape, tapePtr);
 
-    return {beltPtr, pointer, beltSizePtr, this};
+    return {tapePtr, pointer, tapeSizePtr, this};
 }
 
 llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s, llvm::Function* function) const {
@@ -178,7 +178,7 @@ ContextBuilderModule createContextBuilderModule() {
     cbm.generateGetChar();
     cbm.generateGetChar();
     cbm.generateMemcpy();
-    cbm.generateBeltDoublingFunction();
+    cbm.generateTapeDoublingFunction();
     cbm.generateEntryPoint();
 
     return cbm;

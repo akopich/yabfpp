@@ -26,21 +26,21 @@ class ContextBuilderModule;
 
 class BFMachine {
 public:
-    llvm::Value* beltPtr;
+    llvm::Value* tapePtr;
     llvm::Value* pointer;
-    llvm::Value* beltSizePtr;
+    llvm::Value* tapeSizePtr;
     ContextBuilderModule* cbm;
     std::map<std::string, llvm::Value*> variableName2Ptr;
 
-    BFMachine(llvm::Value* beltPtr, llvm::Value* pointer, llvm::Value* beltSizePtr, ContextBuilderModule* cbm);
+    BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, ContextBuilderModule* cbm);
 
     [[nodiscard]] llvm::Value* getIndex() const;
 
-    [[nodiscard]] llvm::Value* getBelt() const;
+    [[nodiscard]] llvm::Value* getTape() const;
 
-    void setBeltPtr(llvm::Value* belt);
+    void setTapePtr(llvm::Value* tape) const;
 
-    [[nodiscard]] llvm::Value* getBeltSize() const;
+    [[nodiscard]] llvm::Value* getTapeSize() const;
 
     [[nodiscard]] llvm::Value* getCurrentChar() const;
 

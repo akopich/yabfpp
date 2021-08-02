@@ -9,26 +9,26 @@ llvm::Value* BFMachine::getIndex() const {
 }
 
 llvm::Value* BFMachine::getCurrentChar() const {
-    return cbm->getCharArrayElement(getBelt(), getIndex());
+    return cbm->getCharArrayElement(getTape(), getIndex());
 }
 
 void BFMachine::setCurrentChar(llvm::Value* theChar) const {
-    cbm->setCharArrayElement(getBelt(), getIndex(), theChar);
+    cbm->setCharArrayElement(getTape(), getIndex(), theChar);
 }
 
-llvm::Value* BFMachine::getBeltSize() const {
-    return cbm->CreateLoad(beltSizePtr);
+llvm::Value* BFMachine::getTapeSize() const {
+    return cbm->CreateLoad(tapeSizePtr);
 }
 
-BFMachine::BFMachine(llvm::Value* beltPtr, llvm::Value* pointer, llvm::Value* beltSizePtr, ContextBuilderModule* cbm)
-        : beltPtr(beltPtr), pointer(pointer), beltSizePtr(beltSizePtr), cbm(cbm) {}
+BFMachine::BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, ContextBuilderModule* cbm)
+        : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), cbm(cbm) {}
 
-llvm::Value* BFMachine::getBelt() const {
-    return cbm->CreateLoad(beltPtr);
+llvm::Value* BFMachine::getTape() const {
+    return cbm->CreateLoad(tapePtr);
 }
 
-void BFMachine::setBeltPtr(llvm::Value* belt) {
-    cbm->builder->CreateStore(belt, beltPtr);
+void BFMachine::setTapePtr(llvm::Value* tape) const {
+    cbm->builder->CreateStore(tape, tapePtr);
 }
 
 /**

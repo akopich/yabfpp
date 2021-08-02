@@ -1,7 +1,8 @@
-import unittest
+import filecmp
 import os
 import subprocess
-import filecmp
+import unittest
+
 
 class MyTestCase(unittest.TestCase):
     def sh(self, s):
@@ -21,10 +22,9 @@ class MyTestCase(unittest.TestCase):
                 if file.endswith("bfpp"):
                     self.programPaths.append(os.path.abspath(programsDir + file))
 
-
     def forProgram(self, programPath):
         pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut = self.getPaths(programPath)
-        self.sh(f"{self.binary} {programPath} -o {pathLL}")
+        self.sh(f"{self.binary} {programPath} -o {pathLL} -t 3")
         self.assertTrue(os.path.isfile(pathLL))
         self.sh(f"clang {pathLL} -o {pathBinary}")
         self.assertTrue(os.path.isfile(pathBinary))

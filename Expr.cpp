@@ -15,7 +15,7 @@ void MovePtrExpr::generate(BFMachine& machine) const {
                                                                     true);
     auto newIndex = machine.cbm->CreateAdd(index, stepValueI32, "move pointer");
 
-    machine.cbm->generateCallBeltDoublingFunction(machine, newIndex);
+    machine.cbm->generateCallTapeDoublingFunction(machine, newIndex);
 
     machine.cbm->builder->CreateStore(newIndex, machine.pointer);
 }

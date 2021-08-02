@@ -30,7 +30,7 @@ std::optional<std::string> readFile(const std::string& inputPath) {
 int main(int ac, char* av[]) {
     std::string inputPath;
     std::string outPath;
-    int initialBeltSize;
+    int initialTapeSize;
 
     po::options_description desc("CLI options");
 
@@ -38,7 +38,7 @@ int main(int ac, char* av[]) {
             ("help", "produce help message")
             ("input-file", po::value<std::string>(&inputPath), "input file")
             ("output-file,o", po::value<std::string>(&outPath)->default_value("a.ll"), "Output file name.")
-            ("belt-size,b", po::value<int>(&initialBeltSize)->default_value(30000), "Initial belt size.");
+            ("tape-size,t", po::value<int>(&initialTapeSize)->default_value(30000), "Initial tape size.");
 
     po::positional_options_description p;
     p.add("input-file", -1);
@@ -66,7 +66,7 @@ int main(int ac, char* av[]) {
     }
 
     auto cbm = createContextBuilderModule();
-    auto machine = cbm.init(initialBeltSize);
+    auto machine = cbm.init(initialTapeSize);
     auto expr = parse(cbm, program.value());
     expr->generate(machine);
     cbm.finalizeAndPrintIRtoFile(outPath);
