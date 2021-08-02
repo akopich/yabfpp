@@ -1,0 +1,13 @@
+; Reads three characters, takes the difference of the first two 
+; adds it to the third and prints the sum
+
+,^ ; read the first character
+x  ; store it in the variable x
+>x ; move x cells to the right
+,  ; read the second character
+-x ; subtract x from the second character
+^y ; store the difference in the variable y
+>y ; move y cells to the right
+,  ; read the third character 
++y ; add the difference to it
+.  ; print the result
