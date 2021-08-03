@@ -112,6 +112,8 @@ public:
     void generateTapeDoublingFunction();
 
     void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
+
+    llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value);
 };
 
 ContextBuilderModule createContextBuilderModule();

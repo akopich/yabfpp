@@ -158,14 +158,9 @@ void ContextBuilderModule::generateCalloc() const {
 BFMachine ContextBuilderModule::init(const int tapeSize) {
     auto tape = generateCallCalloc(getConstInt(tapeSize));
 
-    auto pointer = builder->CreateAlloca(builder->getInt32Ty()); //TODO repated pattern of allocation and initialization
-    builder->CreateStore(getConstInt(0), pointer);
-
-    auto tapeSizePtr = builder->CreateAlloca(builder->getInt32Ty());
-    builder->CreateStore(getConstInt(tapeSize), tapeSizePtr);
-
-    auto tapePtr = builder->CreateAlloca(builder->getInt8PtrTy());
-    builder->CreateStore(tape, tapePtr);
+    auto pointer = allocateAndInitialize(builder->getInt32Ty(), getConstInt(0));
+    auto tapeSizePtr = allocateAndInitialize(builder->getInt32Ty(), getConstInt(tapeSize));
+    auto tapePtr = allocateAndInitialize(builder->getInt8PtrTy(), tape);
 
     return {tapePtr, pointer, tapeSizePtr, this};
 }
@@ -240,5 +235,11 @@ llvm::Function* ContextBuilderModule::declareFunction(const std::vector<llvm::Ty
                                                       const std::string& name) const {
     llvm::FunctionType* functionType = llvm::FunctionType::get(resultType, argTypes, isVariadic);
     return llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, module.get());
+}
+
+llvm::Value* ContextBuilderModule::allocateAndInitialize(llvm::Type* type, llvm::Value* value) {
+    auto pointer = builder->CreateAlloca(type);
+    builder->CreateStore(value, pointer);
+    return pointer;
 }
 
