@@ -50,6 +50,8 @@ private:
 
     void generatePrintfInt() const;
 
+    void generateFree() const;
+
     void generatePutChar() const;
 
     void generateCalloc() const;
@@ -80,6 +82,8 @@ public:
     BFMachine init(int tapeSize);
 
     void generateCallPutChar(llvm::Value* theChar) const;
+
+    void generateCallFree(llvm::Value* ptr) const;
 
     void generateCallPrintfInt(llvm::Value* theInt) const;
 

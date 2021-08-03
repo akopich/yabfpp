@@ -59,6 +59,7 @@ void ContextBuilderModule::generateTapeDoublingFunction() {
     llvm::Value* newTapeSize = builder->CreateMul(tapeSize, getConstInt(2));
     llvm::Value* newTape = generateCallCalloc(newTapeSize);
     generateCallMemcpy(newTape, tape, tapeSize);
+    generateCallFree(tape);
     builder->CreateStore(newTapeSize, tapeSizePtr);
     builder->CreateStore(newTape, tapePtr);
 
@@ -183,6 +184,7 @@ ContextBuilderModule createContextBuilderModule() {
     cbm.generatePrintfInt();
     cbm.generatePutChar();
     cbm.generateCalloc();
+    cbm.generateFree();
     cbm.generateGetChar();
     cbm.generateGetChar();
     cbm.generateMemcpy();
@@ -221,6 +223,17 @@ llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) c
     return createBasicBlock(s, main);
 }
 
+void ContextBuilderModule::generateFree() const {
+    declareFunction({builder->getInt8PtrTy()},
+                    builder->getVoidTy(),
+                    false,
+                    "free");
+}
+
+void ContextBuilderModule::generateCallFree(llvm::Value* ptr) const {
+    builder->CreateCall(module->getFunction("free"), {ptr});
+}
+
 llvm::Function* ContextBuilderModule::declareFunction(const std::vector<llvm::Type*>& argTypes,
                                                       llvm::Type* resultType,
                                                       const bool isVariadic,
@@ -228,3 +241,4 @@ llvm::Function* ContextBuilderModule::declareFunction(const std::vector<llvm::Ty
     llvm::FunctionType* functionType = llvm::FunctionType::get(resultType, argTypes, isVariadic);
     return llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, module.get());
 }
+
