@@ -41,6 +41,11 @@ class BFMachine;
 
 class ContextBuilderModule {
 private:
+    llvm::Function* declareFunction(const std::vector<llvm::Type*>& argTypes,
+                                    llvm::Type* resultType,
+                                    const bool isVariadic,
+                                    const std::string& name) const;
+
     void generateEntryPoint();
 
     void generatePrintfInt() const;

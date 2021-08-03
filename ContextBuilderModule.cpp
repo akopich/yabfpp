@@ -21,19 +21,23 @@
 
 
 void ContextBuilderModule::generateEntryPoint() {
-    llvm::FunctionType* mainType = llvm::FunctionType::get(builder->getInt32Ty(), false);
-    main = llvm::Function::Create(mainType, llvm::Function::ExternalLinkage, "main", module.get());
+    main = declareFunction({},
+                           builder->getInt32Ty(),
+                           false,
+                           "main");
     llvm::BasicBlock* entry = llvm::BasicBlock::Create(*context, "main", main);
     builder->SetInsertPoint(entry);
 }
 
 void ContextBuilderModule::generateTapeDoublingFunction() {
-    std::vector<llvm::Type*> agrs = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
-                                     builder->getInt32Ty(),
-                                     llvm::PointerType::get(builder->getInt32Ty(), 0)};
-    llvm::FunctionType* doublerType = llvm::FunctionType::get(builder->getVoidTy(), agrs, false);
-    llvm::Function* doubler = llvm::Function::Create(doublerType, llvm::Function::ExternalLinkage, "doubleTapeIfNeeded",
-                                                     module.get());
+    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
+                                         builder->getInt32Ty(),
+                                         llvm::PointerType::get(builder->getInt32Ty(), 0)};
+    llvm::Function* doubler = declareFunction(argTypes,
+                                              builder->getVoidTy(),
+                                              false,
+                                              "doubleTapeIfNeeded");
+
     llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(*context, "doubleTapeIfNeeded", doubler);
     builder->SetInsertPoint(functionBody);
 
@@ -73,9 +77,10 @@ void ContextBuilderModule::generateCallTapeDoublingFunction(BFMachine& machine, 
 
 
 void ContextBuilderModule::generatePrintfInt() const {
-    std::vector<llvm::Type*> args = {llvm::Type::getInt8PtrTy(*context)};
-    llvm::FunctionType* printfType = llvm::FunctionType::get(builder->getInt32Ty(), args, true);
-    llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", module.get());
+    declareFunction({builder->getInt8PtrTy()},
+                    builder->getInt32Ty(),
+                    true,
+                    "printf");
 }
 
 void ContextBuilderModule::generateCallPrintfInt(llvm::Value* theInt) const {
@@ -118,13 +123,18 @@ llvm::Value* ContextBuilderModule::getConstInt(const int i) const {
 }
 
 void ContextBuilderModule::generatePutChar() const {
-    std::vector<llvm::Type*> args{llvm::Type::getInt8Ty(*context)};
-    llvm::FunctionType* putCharType = llvm::FunctionType::get(builder->getInt32Ty(), args, false);
-    llvm::Function::Create(putCharType, llvm::Function::ExternalLinkage, "putchar", module.get());
+    declareFunction({builder->getInt8Ty()},
+                    builder->getInt32Ty(),
+                    false,
+                    "putchar");
 }
 
 void ContextBuilderModule::generateCallPutChar(llvm::Value* theChar) const {
     builder->CreateCall(module->getFunction("putchar"), {theChar});
+}
+
+void ContextBuilderModule::generateGetChar() const {
+    declareFunction({}, builder->getInt8Ty(), false, "getchar");
 }
 
 llvm::Value* ContextBuilderModule::generateCallGetChar() const {
@@ -132,24 +142,22 @@ llvm::Value* ContextBuilderModule::generateCallGetChar() const {
     return builder->CreateCall(module->getFunction("getchar"), args);
 }
 
-void ContextBuilderModule::generateGetChar() const {
-    llvm::FunctionType* getCharType = llvm::FunctionType::get(builder->getInt8Ty(), {}, false);
-    llvm::Function::Create(getCharType, llvm::Function::ExternalLinkage, "getchar", module.get());
-}
 
 llvm::Value* ContextBuilderModule::generateCallCalloc(llvm::Value* size) const {
     return builder->CreateCall(module->getFunction("calloc"), {size, getConstInt(8)});
 }
 
 void ContextBuilderModule::generateCalloc() const {
-    std::vector<llvm::Type*> args{builder->getInt32Ty(), builder->getInt32Ty()};
-    llvm::FunctionType* mallocType = llvm::FunctionType::get(builder->getInt8PtrTy(), args, false);
-    llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "calloc", module.get());
+    declareFunction({builder->getInt32Ty(), builder->getInt32Ty()},
+                    builder->getInt8PtrTy(),
+                    false,
+                    "calloc");
 }
 
 BFMachine ContextBuilderModule::init(const int tapeSize) {
     auto tape = generateCallCalloc(getConstInt(tapeSize));
-    auto pointer = builder->CreateAlloca(builder->getInt32Ty());
+
+    auto pointer = builder->CreateAlloca(builder->getInt32Ty()); //TODO repated pattern of allocation and initialization
     builder->CreateStore(getConstInt(0), pointer);
 
     auto tapeSizePtr = builder->CreateAlloca(builder->getInt32Ty());
@@ -199,9 +207,10 @@ llvm::Value* ContextBuilderModule::CreateAdd(llvm::Value* lhs, llvm::Value* rhs,
 }
 
 void ContextBuilderModule::generateMemcpy() const {
-    std::vector<llvm::Type*> args{builder->getInt8PtrTy(), builder->getInt8PtrTy(), builder->getInt32Ty()};
-    llvm::FunctionType* memcpyTy = llvm::FunctionType::get(builder->getInt8PtrTy(), args, false);
-    llvm::Function::Create(memcpyTy, llvm::Function::ExternalLinkage, "memcpy", module.get());
+    declareFunction({builder->getInt8PtrTy(), builder->getInt8PtrTy(), builder->getInt32Ty()},
+                    builder->getInt8PtrTy(),
+                    false,
+                    "memcpy");
 }
 
 void ContextBuilderModule::generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::Value* size) const {
@@ -210,4 +219,12 @@ void ContextBuilderModule::generateCallMemcpy(llvm::Value* dest, llvm::Value* sr
 
 llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) const {
     return createBasicBlock(s, main);
+}
+
+llvm::Function* ContextBuilderModule::declareFunction(const std::vector<llvm::Type*>& argTypes,
+                                                      llvm::Type* resultType,
+                                                      const bool isVariadic,
+                                                      const std::string& name) const {
+    llvm::FunctionType* functionType = llvm::FunctionType::get(resultType, argTypes, isVariadic);
+    return llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, module.get());
 }
