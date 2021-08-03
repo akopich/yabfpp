@@ -76,6 +76,12 @@ public:
     void generate(BFMachine& machine) const override;
 };
 
+class PrintIntExpr : public Expr {
+public:
+    void generate(BFMachine& machine) const override;
+};
+
+
 class LoopExpr : public Expr {
 private:
     std::unique_ptr<Expr> body;
@@ -110,11 +116,11 @@ public:
     void generate(BFMachine& machine) const override;
 };
 
-class ReadFromVariable : public Expr {
+class AssignExpressionValueToTheCurrentCell : public Expr {
 private:
-    std::string name;
+    std::unique_ptr<Int8Expr> variable;
 public:
-    explicit ReadFromVariable(std::string name);
+    explicit AssignExpressionValueToTheCurrentCell(std::unique_ptr<Int8Expr> name);
 
     void generate(BFMachine& machine) const override;
 };

@@ -12,11 +12,13 @@
 
 #include "Expr.h"
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i);
+std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bool defaultOneAllowed);
 
 Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i);
 
 std::string parseVariableName(const std::string& s, int& i);
+
+std::string parseIntLiteral(const std::string& s, int& i);
 
 Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) {
     char c = s[i];
@@ -24,11 +26,12 @@ Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) 
     switch (c) {
         case '^':
             return new WriteToVariable(parseVariableName(s, i));
-        case '_':
-            return new ReadFromVariable(parseVariableName(s, i));
+        case '_': {
+            return new AssignExpressionValueToTheCurrentCell(parseTrailingVariable(s, i, false));
+        }
         case '+':
         case '-': {
-            auto add = parseTrailingVariable(s, i);
+            auto add = parseTrailingVariable(s, i, true);
             if (c == '-') {
                 add = std::make_unique<MinusInt8Expr>(move(add));
             }
@@ -38,9 +41,11 @@ Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) 
             return new PrintExpr();
         case ',':
             return new ReadExpr();
+        case '*':
+            return new PrintIntExpr();
         case '<':
         case '>': {
-            auto step = parseTrailingVariable(s, i);
+            auto step = parseTrailingVariable(s, i, true);
             if (c == '<') {
                 step = std::make_unique<MinusInt8Expr>(move(step));
             }
@@ -72,6 +77,10 @@ std::string parseVariableName(const std::string& s, int& i) {
     return parseWithPredicate(s, i, [](const char c) { return isalpha(c); });
 }
 
+std::string parseIntLiteral(const std::string& s, int& i) {
+    return parseWithPredicate(s, i, [](const char c) { return isdigit(c); });
+}
+
 Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i) {
     std::vector<Expr*> v;
     while (i < s.size() && s[i] != ']') {
@@ -80,10 +89,18 @@ Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i) {
     return new ListExpr(v);
 }
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i) {
-    auto varname = parseVariableName(s, i);
+std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bool defaultOneAllowed) {
+    std::string varname = parseVariableName(s, i);
     if (varname.empty()) {
-        return std::make_unique<ConstInt8Expr>(1);
+        std::string intLiteral = parseIntLiteral(s, i);
+        if (intLiteral.empty()) {
+            if (defaultOneAllowed)
+                return std::make_unique<ConstInt8Expr>(1);
+            else
+                throw std::invalid_argument("_ should be followed by a variable name or by an integer literal");
+        } else {
+            return std::make_unique<ConstInt8Expr>(std::stoi(intLiteral));
+        }
     } else {
         return std::make_unique<VariableInt8Expr>(varname);
     }

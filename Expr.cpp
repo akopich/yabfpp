@@ -83,11 +83,12 @@ void WriteToVariable::generate(BFMachine& machine) const {
 
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
 
-void ReadFromVariable::generate(BFMachine& machine) const {
-    machine.setCurrentChar(machine.getVariableValue(name));
+void AssignExpressionValueToTheCurrentCell::generate(BFMachine& machine) const {
+    machine.setCurrentChar(variable->generate(machine));
 }
 
-ReadFromVariable::ReadFromVariable(string name) : name(std::move(name)) {}
+AssignExpressionValueToTheCurrentCell::AssignExpressionValueToTheCurrentCell(std::unique_ptr<Int8Expr> variable)
+        : variable(std::move(variable)) {}
 
 
 llvm::Value* VariableInt8Expr::generate(BFMachine& machine) const {
@@ -109,3 +110,6 @@ llvm::Value* MinusInt8Expr::generate(BFMachine& machine) const {
 
 MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
+void PrintIntExpr::generate(BFMachine& machine) const {
+    machine.cbm->generateCallPrintfInt(machine.getCurrentChar());
+}
