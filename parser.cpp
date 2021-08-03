@@ -14,11 +14,11 @@
 
 std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i);
 
-Expr* parse(ContextBuilderModule& cbm, const std::string& s, int& i);
+Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i);
 
 std::string parseVariableName(const std::string& s, int& i);
 
-Expr* parseToken(ContextBuilderModule& cbm, const std::string& s, int& i) {
+Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) {
     char c = s[i];
     i++;
     switch (c) {
@@ -72,7 +72,7 @@ std::string parseVariableName(const std::string& s, int& i) {
     return parseWithPredicate(s, i, [](const char c) { return isalpha(c); });
 }
 
-Expr* parse(ContextBuilderModule& cbm, const std::string& s, int& i) {
+Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i) {
     std::vector<Expr*> v;
     while (i < s.size() && s[i] != ']') {
         v.push_back(parseToken(cbm, s, i));
@@ -95,7 +95,7 @@ std::string removeWhetespaces(const std::string& s) {
     return res;
 }
 
-std::unique_ptr<Expr> parse(ContextBuilderModule& cbm, const std::string& s) {
+std::unique_ptr<Expr> parse(const ContextBuilderModule& cbm, const std::string& s) {
     int i = 0;
     return std::unique_ptr<Expr>(parse(cbm, removeWhetespaces(s), i));
 }
