@@ -8,6 +8,7 @@
 #include <cctype>
 #include <memory>
 #include <vector>
+#include <set>
 
 
 #include "Expr.h"
@@ -57,7 +58,7 @@ Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) 
             return loop;
         }
         default:
-            std::cerr << "Unexpected symbol at " << i;
+            std::cerr << "Unexpected symbol at " << i << std::endl;
             return nullptr;
     }
 }
@@ -106,13 +107,29 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bo
     }
 }
 
-std::string removeWhetespaces(const std::string& s) {
+template<typename P>
+std::string filterString(const std::string& s, P predicate) {
     std::string res = s;
-    res.erase(std::remove_if(res.begin(), res.end(), ::isspace), res.end());
+    res.erase(std::remove_if(res.begin(), res.end(), predicate), res.end());
     return res;
 }
 
-std::unique_ptr<Expr> parse(const ContextBuilderModule& cbm, const std::string& s) {
+std::string removeWhitespaces(const std::string& s) {
+    return filterString(s, ::isspace);
+}
+
+std::string removeAllButLegacyCharacters(const std::string& s) {
+    std::set<char> legacyCharacters = {'[', ']', '>', '<', '+', '-', '.', ','};
+    return filterString(s, [&](const char c) { return legacyCharacters.count(c) == 0; });
+}
+
+std::unique_ptr<Expr> parse(const ContextBuilderModule& cbm, const std::string& s, bool legacyMode) {
     int i = 0;
-    return std::unique_ptr<Expr>(parse(cbm, removeWhetespaces(s), i));
+    std::string preprocessed;
+    if (legacyMode) {
+        preprocessed = removeAllButLegacyCharacters(s);
+    } else {
+        preprocessed = removeWhitespaces(s);
+    }
+    return std::unique_ptr<Expr>(parse(cbm, preprocessed, i));
 }

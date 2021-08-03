@@ -31,6 +31,7 @@ int main(int ac, char* av[]) {
     std::string inputPath;
     std::string outPath;
     int initialTapeSize;
+    bool legacyMode;
 
     po::options_description desc("CLI options");
 
@@ -38,7 +39,8 @@ int main(int ac, char* av[]) {
             ("help", "produce help message")
             ("input-file", po::value<std::string>(&inputPath), "input file")
             ("output-file,o", po::value<std::string>(&outPath)->default_value("a.ll"), "Output file name.")
-            ("tape-size,t", po::value<int>(&initialTapeSize)->default_value(30000), "Initial tape size.");
+            ("tape-size,t", po::value<int>(&initialTapeSize)->default_value(30000), "Initial tape size.")
+            ("legacy-mode,l", po::bool_switch(&legacyMode)->default_value(false), "Legacy mode switch.");
 
     po::positional_options_description p;
     p.add("input-file", -1);
@@ -67,7 +69,7 @@ int main(int ac, char* av[]) {
 
     auto cbm = createContextBuilderModule();
     auto machine = cbm.init(initialTapeSize);
-    auto expr = parse(cbm, program.value());
+    auto expr = parse(cbm, program.value(), legacyMode);
     expr->generate(machine);
     cbm.finalizeAndPrintIRtoFile(outPath);
     return 0;

@@ -4,29 +4,31 @@ import subprocess
 import unittest
 
 
-class MyTestCase(unittest.TestCase):
-    def sh(self, s):
-        subprocess.Popen(s.split(' ')).wait()
+def sh(s):
+    subprocess.Popen(s.split(' ')).wait()
 
-    def setUp(self) -> None:
-        os.chdir('../')
-        if os.path.isdir("build"):
-            self.sh("rm -rf build")
-        self.sh("cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=Release")
-        self.sh("cmake --build build --target all -j 20")
-        self.binary = "build/yabfpp"
-        programsDir = 'test/programs/'
+
+class Tester(object):
+    def __init__(self, programsDir, compilerOptions, assertTrue, binary):
+        super().__init__()
+        self.programsDir = programsDir
+        self.compilerOptions = compilerOptions
+        self.assertTrue = assertTrue
+        self.binary = binary
+
+    def before(self) -> None:
         self.programPaths = []
-        for subdir, dirs, files in os.walk(programsDir):
+        for subdir, dirs, files in os.walk(self.programsDir):
             for file in files:
                 if file.endswith("bfpp"):
-                    self.programPaths.append(os.path.abspath(programsDir + file))
+                    self.programPaths.append(os.path.abspath(self.programsDir + file))
 
     def forProgram(self, programPath):
+        print(f"Testing on source {programPath}")
         pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut = self.getPaths(programPath)
-        self.sh(f"{self.binary} {programPath} -o {pathLL} -t 3")
+        sh(f"{self.binary} {programPath} -o {pathLL} {self.compilerOptions}")
         self.assertTrue(os.path.isfile(pathLL))
-        self.sh(f"clang {pathLL} -o {pathBinary}")
+        sh(f"clang {pathLL} -o {pathBinary}")
         self.assertTrue(os.path.isfile(pathBinary))
         fileIn = open(pathIn, "r")
         fileOut = open(pathOut, "w")
@@ -44,16 +46,40 @@ class MyTestCase(unittest.TestCase):
         pathExpected = pathNoExtension + ".expected"
         return pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut
 
-    def test_something(self):
+    def test(self):
         for file in self.programPaths:
             self.forProgram(file)
 
-    def tearDown(self) -> None:
+    def after(self) -> None:
         for file in self.programPaths:
             pathBinary, _, _, pathLL, pathNoExtension, pathOut = self.getPaths(file)
             for file in [pathBinary, pathLL, pathNoExtension, pathOut]:
                 if os.path.isfile(file):
                     os.remove(file)
+
+
+class TestCompiler(unittest.TestCase):
+    @classmethod
+    def setUpClass(self) -> None:
+        os.chdir('../')
+        if os.path.isdir("build"):
+            sh("rm -rf build")
+        sh("cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=Release")
+        sh("cmake --build build --target all -j 20")
+        self.binary = "build/yabfpp"
+
+    def general_test(self, tester):
+        tester.before()
+        tester.test()
+        tester.after()
+
+    def test_modern(self):
+        tester = Tester('test/programs/', '-t 3', self.assertTrue, self.binary)
+        self.general_test(tester)
+
+    def test_legacy(self):
+        tester = Tester('test/legacy/', '-t 3 -l', self.assertTrue, self.binary)
+        self.general_test(tester)
 
 
 if __name__ == '__main__':
