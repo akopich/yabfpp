@@ -71,7 +71,7 @@ int main(int ac, char* av[]) {
         return 1;
     }
 
-    auto cbm = createContextBuilderModule(targetTriple);
+    auto cbm = createContextBuilderModule(inputPath, targetTriple);
     auto machine = cbm.init(initialTapeSize);
     auto expr = parse(cbm, program.value(), legacyMode);
     expr->generate(machine);

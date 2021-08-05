@@ -169,10 +169,10 @@ llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s, l
     return llvm::BasicBlock::Create(*context, s, function);
 }
 
-ContextBuilderModule createContextBuilderModule(const std::string& targetTriple) {
+ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple) {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
     std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>("compiler", *context);
+    std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(name, *context);
 
     module->setTargetTriple(targetTriple);
 
