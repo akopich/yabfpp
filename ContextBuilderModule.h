@@ -67,7 +67,7 @@ private:
     llvm::Function* main{};
 
 public:
-    friend ContextBuilderModule createContextBuilderModule();
+    friend ContextBuilderModule createContextBuilderModule(const std::string& targetTriple);
 
     ContextBuilderModule(std::unique_ptr<llvm::LLVMContext> context,
                          std::unique_ptr<llvm::Module> module,
@@ -116,7 +116,7 @@ public:
     llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value);
 };
 
-ContextBuilderModule createContextBuilderModule();
+ContextBuilderModule createContextBuilderModule(const std::string& targetTriple);
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

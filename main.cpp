@@ -30,6 +30,7 @@ std::optional<std::string> readFile(const std::string& inputPath) {
 int main(int ac, char* av[]) {
     std::string inputPath;
     std::string outPath;
+    std::string targetTriple;
     int initialTapeSize;
     bool legacyMode;
 
@@ -40,7 +41,10 @@ int main(int ac, char* av[]) {
             ("input-file", po::value<std::string>(&inputPath), "input file")
             ("output-file,o", po::value<std::string>(&outPath)->default_value("a.ll"), "Output file name.")
             ("tape-size,t", po::value<int>(&initialTapeSize)->default_value(30000), "Initial tape size.")
-            ("legacy-mode,l", po::bool_switch(&legacyMode)->default_value(false), "Legacy mode switch.");
+            ("legacy-mode,l", po::bool_switch(&legacyMode)->default_value(false), "Legacy mode switch.")
+            ("target",
+             po::value<std::string>(&targetTriple)->default_value(llvm::sys::getDefaultTargetTriple()),
+             "The target triple is a string in the format of: CPU_TYPE-VENDOR-OPERATING_SYSTEM or CPU_TYPE-VENDOR-KERNEL-OPERATING_SYSTEM.");
 
     po::positional_options_description p;
     p.add("input-file", -1);
@@ -67,7 +71,7 @@ int main(int ac, char* av[]) {
         return 1;
     }
 
-    auto cbm = createContextBuilderModule();
+    auto cbm = createContextBuilderModule(targetTriple);
     auto machine = cbm.init(initialTapeSize);
     auto expr = parse(cbm, program.value(), legacyMode);
     expr->generate(machine);
