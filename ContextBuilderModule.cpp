@@ -183,7 +183,6 @@ ContextBuilderModule createContextBuilderModule(const std::string& name, const s
     cbm.generateCalloc();
     cbm.generateFree();
     cbm.generateGetChar();
-    cbm.generateGetChar();
     cbm.generateMemcpy();
     cbm.generateTapeDoublingFunction();
     cbm.generateEntryPoint();
