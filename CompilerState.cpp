@@ -80,7 +80,8 @@ void CompilerState::generateTapeDoublingFunction() {
                                                     false,
                                                     "doubleTapeIfNeeded");
 
-    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(module->getContext(), "doubleTapeIfNeeded", doubler);
+    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(module->getContext(), "doubleTapeIfNeeded",
+                                                              doubler); // TODO use createBasicBlock method
     builder->SetInsertPoint(functionBody);
 
     auto it = doubler->args().begin();
@@ -118,13 +119,45 @@ void CompilerState::generateCallTapeDoublingFunction(BFMachine& machine, llvm::V
     builder->CreateCall(module->getFunction("doubleTapeIfNeeded"), printArgs);
 }
 
+void CompilerState::generateReadCharFunction() {
+    llvm::Function* readChar = clib->declareFunction({},
+                                                     builder->getInt8Ty(),
+                                                     false,
+                                                     "readChar");
+    llvm::BasicBlock* functionBody = createBasicBlock("readChar", readChar); // TODO use createBasicBlock method
+    builder->SetInsertPoint(functionBody);
+
+    llvm::Value* readInt = clib->generateCallGetChar();
+    llvm::Value* EOFValue = getConstInt(platformDependent->getEOF());
+    llvm::Value* isEOF = builder->CreateICmpEQ(readInt, EOFValue, "EOF check");
+
+    llvm::BasicBlock* isEOFBB = createBasicBlock("is EOF Block", readChar);
+    llvm::BasicBlock* notEOFBB = createBasicBlock("no EOF Block", readChar);
+    builder->CreateCondBr(isEOF, isEOFBB, notEOFBB);
+
+    builder->SetInsertPoint(isEOFBB);
+    builder->CreateRet(getConstChar(0));
+
+
+    builder->SetInsertPoint(notEOFBB);
+    llvm::Value* readI8 = builder->CreateIntCast(readInt, builder->getInt8Ty(), platformDependent->isCharSigned());
+    builder->CreateRet(readI8);
+}
+
+llvm::Value* CompilerState::generateCallReadCharFunction() const {
+    return builder->CreateCall(module->getFunction("readChar"), {});
+}
+
 CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                              std::unique_ptr<llvm::Module> module,
                              std::unique_ptr<llvm::IRBuilder<>> builder,
-                             std::unique_ptr<CLibHandler> clib) : context(move(context)),
-                                                                  module(move(module)),
-                                                                  builder(move(builder)),
-                                                                  clib(move(clib)) {}
+                             std::unique_ptr<CLibHandler> clib,
+                             std::unique_ptr<PlatformDependent> platformDependent)
+        : context(move(context)),
+          module(move(module)),
+          builder(move(builder)),
+          clib(move(clib)),
+          platformDependent(move(platformDependent)) {}
 
 llvm::Value* CompilerState::CreateLoad(llvm::Value* ptr) const {
     return builder->CreateLoad(ptr);
@@ -145,12 +178,12 @@ void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath) const {
     module->print(*out, nullptr);
 }
 
+
 llvm::Value* CompilerState::allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
     auto pointer = builder->CreateAlloca(type);
     builder->CreateStore(value, pointer);
     return pointer;
 }
-
 
 CompilerState initCompilerState(const std::string& name, const std::string& targetTriple) {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
@@ -161,8 +194,10 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
 
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
-    CompilerState state(move(context), move(module), move(builder), move(clib));
+    auto platformDependent = getPlatformDependent(targetTriple);
+    CompilerState state(move(context), move(module), move(builder), move(clib), move(platformDependent));
 
+    state.generateReadCharFunction();
     state.generateTapeDoublingFunction();
     state.generateEntryPoint();
 

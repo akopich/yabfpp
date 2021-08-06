@@ -31,7 +31,7 @@ void CLibHandler::generateCallPutChar(llvm::Value* theChar) const {
 }
 
 void CLibHandler::generateGetChar() const {
-    declareFunction({}, builder->getInt8Ty(), false, "getchar");
+    declareFunction({}, builder->getInt32Ty(), false, "getchar");
 }
 
 llvm::Value* CLibHandler::generateCallGetChar() const {

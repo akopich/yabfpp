@@ -37,6 +37,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "BFMachine.h"
 #include "CLibHandler.h"
+#include "PlatformDependent.h"
 
 class BFMachine;
 
@@ -51,8 +52,14 @@ private:
 
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
+    std::unique_ptr<PlatformDependent> platformDependent;
 
     llvm::Function* main{};
+
+
+    void generateTapeDoublingFunction();
+
+    void generateReadCharFunction();
 
 public:
     friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
@@ -60,7 +67,8 @@ public:
     CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                   std::unique_ptr<llvm::Module> module,
                   std::unique_ptr<llvm::IRBuilder<>> builder,
-                  std::unique_ptr<CLibHandler> clib);
+                  std::unique_ptr<CLibHandler> clib,
+                  std::unique_ptr<PlatformDependent> platformDependent);
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
@@ -88,9 +96,9 @@ public:
 
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
 
-    void generateTapeDoublingFunction();
-
     void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const;
+
+    llvm::Value* generateCallReadCharFunction() const;
 
     llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
 };

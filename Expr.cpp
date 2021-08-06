@@ -33,7 +33,7 @@ AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
 
 
 void ReadExpr::generate(BFMachine& machine) const {
-    llvm::Value* readChar = machine.state->clib->generateCallGetChar();
+    llvm::Value* readChar = machine.state->generateCallReadCharFunction();
     machine.setCurrentChar(readChar);
 }
 
