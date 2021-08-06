@@ -32,5 +32,5 @@ find_package(Boost 1.76 COMPONENTS program_options REQUIRED)
 #set(Boost_INCLUDE_DIRS /home/valerij/boost)
 #link_directories(/home/valerij/boost/stage/lib)
 
-add_executable(yabfpp main.cpp Expr.cpp Expr.h ContextBuilderModule.h ContextBuilderModule.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp)
+add_executable(yabfpp main.cpp Expr.cpp Expr.h ContextBuilderModule.h ContextBuilderModule.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h)
 target_link_libraries(yabfpp ${Boost_LIBRARIES})

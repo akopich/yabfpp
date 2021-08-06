@@ -32,12 +32,12 @@ AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
 
 
 void ReadExpr::generate(BFMachine& machine) const {
-    llvm::Value* readChar = machine.cbm->generateCallGetChar();
+    llvm::Value* readChar = machine.cbm->clib->generateCallGetChar();
     machine.setCurrentChar(readChar);
 }
 
 void PrintExpr::generate(BFMachine& machine) const {
-    machine.cbm->generateCallPutChar(machine.getCurrentChar());
+    machine.cbm->clib->generateCallPutChar(machine.getCurrentChar());
 }
 
 void ListExpr::generate(BFMachine& machine) const {
@@ -111,5 +111,5 @@ llvm::Value* MinusInt8Expr::generate(BFMachine& machine) const {
 MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
 void PrintIntExpr::generate(BFMachine& machine) const {
-    machine.cbm->generateCallPrintfInt(machine.getCurrentChar());
+    machine.cbm->clib->generateCallPrintfInt(machine.getCurrentChar());
 }

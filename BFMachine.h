@@ -21,6 +21,7 @@
 #include "llvm/ADT/APFloat.h"
 
 #include "ContextBuilderModule.h"
+#include "CLibHandler.h"
 
 class ContextBuilderModule;
 

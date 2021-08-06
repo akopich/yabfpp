@@ -36,34 +36,22 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/APFloat.h"
 #include "BFMachine.h"
+#include "CLibHandler.h"
 
 class BFMachine;
 
+class CLibHandler;
+
 class ContextBuilderModule {
 private:
-    llvm::Function* declareFunction(const std::vector<llvm::Type*>& argTypes,
-                                    llvm::Type* resultType,
-                                    const bool isVariadic,
-                                    const std::string& name) const;
 
     void generateEntryPoint();
-
-    void generatePrintfInt() const;
-
-    void generateFree() const;
-
-    void generatePutChar() const;
-
-    void generateCalloc() const;
-
-    void generateGetChar() const;
-
-    void generateMemcpy() const;
 
     void return0FromMain() const;
 
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
+
     llvm::Function* main{};
 
 public:
@@ -71,27 +59,18 @@ public:
 
     ContextBuilderModule(std::unique_ptr<llvm::LLVMContext> context,
                          std::unique_ptr<llvm::Module> module,
-                         std::unique_ptr<llvm::IRBuilder<>> builder);
+                         std::unique_ptr<llvm::IRBuilder<>> builder,
+                         std::unique_ptr<CLibHandler> clib);
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
+
+    std::unique_ptr<CLibHandler> clib;
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s, llvm::Function* function) const;
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
     BFMachine init(int tapeSize);
-
-    void generateCallPutChar(llvm::Value* theChar) const;
-
-    void generateCallFree(llvm::Value* ptr) const;
-
-    void generateCallPrintfInt(llvm::Value* theInt) const;
-
-    void generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::Value* size) const;
-
-    llvm::Value* generateCallCalloc(llvm::Value* size) const;
-
-    [[nodiscard]] llvm::Value* generateCallGetChar() const;
 
     [[nodiscard]] llvm::Value* getConstInt(int i) const;
 
@@ -113,7 +92,7 @@ public:
 
     void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
 
-    llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value);
+    llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
 };
 
 ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple);
