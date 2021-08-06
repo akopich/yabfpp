@@ -26,6 +26,13 @@ public:
     bool isCharSigned() override;
 };
 
+class DefaultPlatform : public PlatformDependent {
+public:
+    int getEOF() override;
+
+    bool isCharSigned() override;
+};
+
 std::unique_ptr<PlatformDependent> getPlatformDependent(const std::string& target);
 
 #endif //YABFPP_PLATFORMDEPENDENT_H
