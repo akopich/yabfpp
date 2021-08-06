@@ -20,20 +20,21 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/APFloat.h"
 
-#include "ContextBuilderModule.h"
+#include "CompilerState.h"
 #include "CLibHandler.h"
 
-class ContextBuilderModule;
+class CompilerState;
 
 class BFMachine {
 public:
     llvm::Value* tapePtr;
     llvm::Value* pointer;
     llvm::Value* tapeSizePtr;
-    ContextBuilderModule* cbm;
+    const CompilerState* state;
+    llvm::IRBuilder<>* builder;
     std::map<std::string, llvm::Value*> variableName2Ptr;
 
-    BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, ContextBuilderModule* cbm);
+    BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state);
 
     [[nodiscard]] llvm::Value* getIndex() const;
 

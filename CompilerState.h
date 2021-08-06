@@ -42,7 +42,7 @@ class BFMachine;
 
 class CLibHandler;
 
-class ContextBuilderModule {
+class CompilerState {
 private:
 
     void generateEntryPoint();
@@ -55,12 +55,12 @@ private:
     llvm::Function* main{};
 
 public:
-    friend ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple);
+    friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
 
-    ContextBuilderModule(std::unique_ptr<llvm::LLVMContext> context,
-                         std::unique_ptr<llvm::Module> module,
-                         std::unique_ptr<llvm::IRBuilder<>> builder,
-                         std::unique_ptr<CLibHandler> clib);
+    CompilerState(std::unique_ptr<llvm::LLVMContext> context,
+                  std::unique_ptr<llvm::Module> module,
+                  std::unique_ptr<llvm::IRBuilder<>> builder,
+                  std::unique_ptr<CLibHandler> clib);
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
@@ -90,12 +90,12 @@ public:
 
     void generateTapeDoublingFunction();
 
-    void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex);
+    void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const;
 
     llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
 };
 
-ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple);
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

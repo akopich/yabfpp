@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include "ContextBuilderModule.h"
+#include "CompilerState.h"
 #include <algorithm>
 #include <cctype>
 #include <memory>
@@ -15,13 +15,13 @@
 
 std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bool defaultOneAllowed);
 
-Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i);
+Expr* parse(const CompilerState& state, const std::string& s, int& i);
 
 std::string parseVariableName(const std::string& s, int& i);
 
 std::string parseIntLiteral(const std::string& s, int& i);
 
-Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) {
+Expr* parseToken(const CompilerState& state, const std::string& s, int& i) {
     char c = s[i];
     i++;
     switch (c) {
@@ -53,7 +53,7 @@ Expr* parseToken(const ContextBuilderModule& cbm, const std::string& s, int& i) 
             return new MovePtrExpr(move(step));
         }
         case '[': {
-            auto loop = new LoopExpr(parse(cbm, s, i));
+            auto loop = new LoopExpr(parse(state, s, i));
             i++;
             return loop;
         }
@@ -82,10 +82,10 @@ std::string parseIntLiteral(const std::string& s, int& i) {
     return parseWithPredicate(s, i, [](const char c) { return isdigit(c); });
 }
 
-Expr* parse(const ContextBuilderModule& cbm, const std::string& s, int& i) {
+Expr* parse(const CompilerState& state, const std::string& s, int& i) {
     std::vector<Expr*> v;
     while (i < s.size() && s[i] != ']') {
-        v.push_back(parseToken(cbm, s, i));
+        v.push_back(parseToken(state, s, i));
     }
     return new ListExpr(v);
 }
@@ -123,7 +123,7 @@ std::string removeAllButLegacyCharacters(const std::string& s) {
     return filterString(s, [&](const char c) { return legacyCharacters.count(c) == 0; });
 }
 
-std::unique_ptr<Expr> parse(const ContextBuilderModule& cbm, const std::string& s, bool legacyMode) {
+std::unique_ptr<Expr> parse(const CompilerState& state, const std::string& s, bool legacyMode) {
     int i = 0;
     std::string preprocessed;
     if (legacyMode) {
@@ -131,5 +131,5 @@ std::unique_ptr<Expr> parse(const ContextBuilderModule& cbm, const std::string& 
     } else {
         preprocessed = removeWhitespaces(s);
     }
-    return std::unique_ptr<Expr>(parse(cbm, preprocessed, i));
+    return std::unique_ptr<Expr>(parse(state, preprocessed, i));
 }

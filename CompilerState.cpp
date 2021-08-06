@@ -16,11 +16,11 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/ADT/APFloat.h"
 #include <iostream>
-#include "ContextBuilderModule.h"
+#include "CompilerState.h"
 #include "BFMachine.h"
 
 
-void ContextBuilderModule::generateEntryPoint() {
+void CompilerState::generateEntryPoint() {
     main = clib->declareFunction({},
                                  builder->getInt32Ty(),
                                  false,
@@ -29,35 +29,35 @@ void ContextBuilderModule::generateEntryPoint() {
     builder->SetInsertPoint(entry);
 }
 
-llvm::Value* ContextBuilderModule::getCharArrayElement(llvm::Value* arr, llvm::Value* index) const {
+llvm::Value* CompilerState::getCharArrayElement(llvm::Value* arr, llvm::Value* index) const {
     auto elemPtr = builder->CreateGEP(arr, index);
     return builder->CreateLoad(elemPtr);
 }
 
-void ContextBuilderModule::setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const {
+void CompilerState::setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const {
     auto elemPtr = builder->CreateGEP(arr, index);
     builder->CreateStore(theChar, elemPtr);
 }
 
 
-void ContextBuilderModule::return0FromMain() const {
+void CompilerState::return0FromMain() const {
     builder->CreateRet(getConstInt(0));
 }
 
-llvm::Value* ContextBuilderModule::getConstChar(const char c) const {
+llvm::Value* CompilerState::getConstChar(const char c) const {
     return llvm::ConstantInt::get(*context, llvm::APInt(8, c));
 }
 
-llvm::Value* ContextBuilderModule::getConst64(const int i) const {
+llvm::Value* CompilerState::getConst64(const int i) const {
     return llvm::ConstantInt::get(*context, llvm::APInt(64, i));
 }
 
-llvm::Value* ContextBuilderModule::getConstInt(const int i) const {
+llvm::Value* CompilerState::getConstInt(const int i) const {
     return llvm::ConstantInt::get(*context, llvm::APInt(32, i));
 }
 
 
-BFMachine ContextBuilderModule::init(const int tapeSize) {
+BFMachine CompilerState::init(const int tapeSize) {
     auto tape = clib->generateCallCalloc(getConstInt(tapeSize));
 
     auto pointer = allocateAndInitialize(builder->getInt32Ty(), getConstInt(0));
@@ -67,11 +67,11 @@ BFMachine ContextBuilderModule::init(const int tapeSize) {
     return {tapePtr, pointer, tapeSizePtr, this};
 }
 
-llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s, llvm::Function* function) const {
+llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Function* function) const {
     return llvm::BasicBlock::Create(*context, s, function);
 }
 
-void ContextBuilderModule::generateTapeDoublingFunction() {
+void CompilerState::generateTapeDoublingFunction() {
     std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
                                          builder->getInt32Ty(),
                                          llvm::PointerType::get(builder->getInt32Ty(), 0)};
@@ -113,46 +113,46 @@ void ContextBuilderModule::generateTapeDoublingFunction() {
 }
 
 
-void ContextBuilderModule::generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) {
+void CompilerState::generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const {
     std::vector<llvm::Value*> printArgs = {machine.tapePtr, newIndex, machine.tapeSizePtr};
     builder->CreateCall(module->getFunction("doubleTapeIfNeeded"), printArgs);
 }
 
-ContextBuilderModule::ContextBuilderModule(std::unique_ptr<llvm::LLVMContext> context,
-                                           std::unique_ptr<llvm::Module> module,
-                                           std::unique_ptr<llvm::IRBuilder<>> builder,
-                                           std::unique_ptr<CLibHandler> clib) : context(move(context)),
-                                                                                module(move(module)),
-                                                                                builder(move(builder)),
-                                                                                clib(move(clib)) {}
+CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
+                             std::unique_ptr<llvm::Module> module,
+                             std::unique_ptr<llvm::IRBuilder<>> builder,
+                             std::unique_ptr<CLibHandler> clib) : context(move(context)),
+                                                                  module(move(module)),
+                                                                  builder(move(builder)),
+                                                                  clib(move(clib)) {}
 
-llvm::Value* ContextBuilderModule::CreateLoad(llvm::Value* ptr) const {
+llvm::Value* CompilerState::CreateLoad(llvm::Value* ptr) const {
     return builder->CreateLoad(ptr);
 }
 
-llvm::Value* ContextBuilderModule::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
+llvm::Value* CompilerState::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
     return builder->CreateAdd(lhs, rhs, name);
 }
 
-llvm::BasicBlock* ContextBuilderModule::createBasicBlock(const std::string& s) const {
+llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s) const {
     return createBasicBlock(s, main);
 }
 
-void ContextBuilderModule::finalizeAndPrintIRtoFile(const std::string& outPath) const {
+void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath) const {
     return0FromMain();
     std::error_code EC;
     llvm::raw_ostream* out = new llvm::raw_fd_ostream(outPath, EC, llvm::sys::fs::F_None);
     module->print(*out, nullptr);
 }
 
-llvm::Value* ContextBuilderModule::allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
+llvm::Value* CompilerState::allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
     auto pointer = builder->CreateAlloca(type);
     builder->CreateStore(value, pointer);
     return pointer;
 }
 
 
-ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple) {
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple) {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
     std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(name, *context);
@@ -161,10 +161,10 @@ ContextBuilderModule createContextBuilderModule(const std::string& name, const s
 
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
-    ContextBuilderModule cbm(move(context), move(module), move(builder), move(clib));
+    CompilerState state(move(context), move(module), move(builder), move(clib));
 
-    cbm.generateTapeDoublingFunction();
-    cbm.generateEntryPoint();
+    state.generateTapeDoublingFunction();
+    state.generateEntryPoint();
 
-    return cbm;
+    return state;
 }

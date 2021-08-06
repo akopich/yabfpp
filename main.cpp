@@ -3,7 +3,7 @@
 #include <iostream>
 #include <optional>
 
-#include "ContextBuilderModule.h"
+#include "CompilerState.h"
 #include "Expr.h"
 #include "parser.h"
 
@@ -71,10 +71,10 @@ int main(int ac, char* av[]) {
         return 1;
     }
 
-    auto cbm = createContextBuilderModule(inputPath, targetTriple);
-    auto machine = cbm.init(initialTapeSize);
-    auto expr = parse(cbm, program.value(), legacyMode);
+    auto state = initCompilerState(inputPath, targetTriple);
+    auto machine = state.init(initialTapeSize);
+    auto expr = parse(state, program.value(), legacyMode);
     expr->generate(machine);
-    cbm.finalizeAndPrintIRtoFile(outPath);
+    state.finalizeAndPrintIRtoFile(outPath);
     return 0;
 }

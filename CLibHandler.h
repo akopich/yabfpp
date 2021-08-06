@@ -8,9 +8,9 @@
 #include <memory>
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
-#include "ContextBuilderModule.h"
+#include "CompilerState.h"
 
-class ContextBuilderModule;
+class CompilerState;
 
 class CLibHandler {
 private:
@@ -33,7 +33,7 @@ private:
     void init() const;
 
 public:
-    friend ContextBuilderModule createContextBuilderModule(const std::string& name, const std::string& targetTriple);
+    friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
 
     CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder);
 

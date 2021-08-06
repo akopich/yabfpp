@@ -11,20 +11,21 @@ using namespace std;
 void MovePtrExpr::generate(BFMachine& machine) const {
     llvm::Value* index = machine.getIndex();
     llvm::Value* stepValueI8 = steps->generate(machine);
-    llvm::Value* stepValueI32 = machine.cbm->builder->CreateIntCast(stepValueI8, machine.cbm->builder->getInt32Ty(),
-                                                                    true);
-    auto newIndex = machine.cbm->CreateAdd(index, stepValueI32, "move pointer");
 
-    machine.cbm->generateCallTapeDoublingFunction(machine, newIndex);
+    llvm::Value* stepValueI32 = machine.builder->CreateIntCast(stepValueI8, machine.builder->getInt32Ty(),
+                                                               true);
+    auto newIndex = machine.state->CreateAdd(index, stepValueI32, "move pointer");
 
-    machine.cbm->builder->CreateStore(newIndex, machine.pointer);
+    machine.state->generateCallTapeDoublingFunction(machine, newIndex);
+
+    machine.builder->CreateStore(newIndex, machine.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
 
 void AddExpr::generate(BFMachine& machine) const {
     llvm::Value* theChar = machine.getCurrentChar();
-    llvm::Value* newChar = machine.cbm->CreateAdd(theChar, this->add->generate(machine), "add char");
+    llvm::Value* newChar = machine.state->CreateAdd(theChar, this->add->generate(machine), "add char");
     machine.setCurrentChar(newChar);
 }
 
@@ -32,12 +33,12 @@ AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
 
 
 void ReadExpr::generate(BFMachine& machine) const {
-    llvm::Value* readChar = machine.cbm->clib->generateCallGetChar();
+    llvm::Value* readChar = machine.state->clib->generateCallGetChar();
     machine.setCurrentChar(readChar);
 }
 
 void PrintExpr::generate(BFMachine& machine) const {
-    machine.cbm->clib->generateCallPutChar(machine.getCurrentChar());
+    machine.state->clib->generateCallPutChar(machine.getCurrentChar());
 }
 
 void ListExpr::generate(BFMachine& machine) const {
@@ -57,28 +58,28 @@ ListExpr::ListExpr(const vector<Expr*>& v) : v(v) {}
 Expr::~Expr() = default;
 
 void LoopExpr::generate(BFMachine& machine) const {
-    llvm::BasicBlock* loopCondBB = machine.cbm->createBasicBlock("loop cond");
-    llvm::BasicBlock* loopBodyBB = machine.cbm->createBasicBlock("loop body");
-    llvm::BasicBlock* afterLoopBB = machine.cbm->createBasicBlock("after loop");
-    machine.cbm->builder->CreateBr(loopCondBB);
+    llvm::BasicBlock* loopCondBB = machine.state->createBasicBlock("loop cond");
+    llvm::BasicBlock* loopBodyBB = machine.state->createBasicBlock("loop body");
+    llvm::BasicBlock* afterLoopBB = machine.state->createBasicBlock("after loop");
+    machine.builder->CreateBr(loopCondBB);
 
-    machine.cbm->builder->SetInsertPoint(loopCondBB);
-    auto cond = machine.cbm->builder->CreateICmpNE(machine.getCurrentChar(), machine.cbm->getConstChar(0),
-                                                   "check loop condition");
-    machine.cbm->builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
+    machine.builder->SetInsertPoint(loopCondBB);
+    auto cond = machine.builder->CreateICmpNE(machine.getCurrentChar(), machine.state->getConstChar(0),
+                                              "check loop condition");
+    machine.builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
 
-    machine.cbm->builder->SetInsertPoint(loopBodyBB);
+    machine.builder->SetInsertPoint(loopBodyBB);
     body->generate(machine);
-    machine.cbm->builder->CreateBr(loopCondBB);
+    machine.builder->CreateBr(loopCondBB);
 
-    machine.cbm->builder->SetInsertPoint(afterLoopBB);
+    machine.builder->SetInsertPoint(afterLoopBB);
 }
 
 LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
 
 void WriteToVariable::generate(BFMachine& machine) const {
     llvm::Value* ptr = machine.getVariablePtr(name);
-    machine.cbm->builder->CreateStore(machine.getCurrentChar(), ptr);
+    machine.builder->CreateStore(machine.getCurrentChar(), ptr);
 }
 
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
@@ -98,18 +99,18 @@ llvm::Value* VariableInt8Expr::generate(BFMachine& machine) const {
 VariableInt8Expr::VariableInt8Expr(string name) : name(std::move(name)) {}
 
 llvm::Value* ConstInt8Expr::generate(BFMachine& machine) const {
-    return machine.cbm->getConstChar(value);
+    return machine.state->getConstChar(value);
 }
 
 ConstInt8Expr::ConstInt8Expr(char value) : value(value) {}
 
 llvm::Value* MinusInt8Expr::generate(BFMachine& machine) const {
     auto beforeMinus = value->generate(machine);
-    return machine.cbm->builder->CreateMul(beforeMinus, machine.cbm->getConstChar(-1));
+    return machine.builder->CreateMul(beforeMinus, machine.state->getConstChar(-1));
 }
 
 MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
 void PrintIntExpr::generate(BFMachine& machine) const {
-    machine.cbm->clib->generateCallPrintfInt(machine.getCurrentChar());
+    machine.state->clib->generateCallPrintfInt(machine.getCurrentChar());
 }
