@@ -14,9 +14,7 @@ bool X86_64PCLinuxGNU::isCharSigned() {
     return true;
 }
 
-PlatformDependent::~PlatformDependent() {
-
-}
+PlatformDependent::~PlatformDependent() = default;
 
 int DefaultPlatform::getEOF() {
     return EOF;
