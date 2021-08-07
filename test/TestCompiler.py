@@ -8,13 +8,31 @@ def sh(s):
     subprocess.Popen(s.split(' ')).wait()
 
 
+# does the same thing as filecmp.cmp, but expectedPath file may contain an additional trailing newline character, as
+# it seems to be impossible to flush stout in JS without adding a newline
+def compareFilesUpToTrailingNewline(outPath, expectedPath):
+    with open(expectedPath, "r") as expectedFile, open(outPath, "r") as outFile:
+        expected = expectedFile.read()
+        out = outFile.read()
+        if len(expected) == len(out):
+            return expected == out
+        if len(expected) + 1 == len(out) and out[-1] == '\n':
+            return expected == out[:-1]
+        return False
+
+
 class Tester(object):
-    def __init__(self, programsDir, compilerOptions, assertTrue, binary):
+    def __init__(self, programsDir, bfCompilerOptions, llvm2targetCompiler, llvm2targetCompilerOptions, runPrefix,
+                 assertTrue, binary, fileCaomparator):
         super().__init__()
         self.programsDir = programsDir
-        self.compilerOptions = compilerOptions
+        self.bfCompilerOptions = bfCompilerOptions
+        self.llvm2targetCompiler = llvm2targetCompiler
+        self.llvm2targetCompilerOptions = llvm2targetCompilerOptions
+        self.runPrefix = runPrefix
         self.assertTrue = assertTrue
         self.binary = binary
+        self.fileComparator = fileCaomparator
 
     def before(self) -> None:
         self.programPaths = []
@@ -25,17 +43,16 @@ class Tester(object):
 
     def forProgram(self, programPath):
         print(f"Testing on source {programPath}")
-        pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut = self.getPaths(programPath)
-        sh(f"{self.binary} {programPath} -o {pathLL} {self.compilerOptions}")
+        pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut, _ = self.getPaths(programPath)
+        sh(f"{self.binary} {programPath} -o {pathLL} {self.bfCompilerOptions}")
         self.assertTrue(os.path.isfile(pathLL))
-        sh(f"clang {pathLL} -o {pathBinary}")
+        sh(f"{self.llvm2targetCompiler} {pathLL} -o {pathBinary} {self.llvm2targetCompilerOptions}")
         self.assertTrue(os.path.isfile(pathBinary))
-        fileIn = open(pathIn, "r")
-        fileOut = open(pathOut, "w")
-        subprocess.Popen([pathBinary], stdin=fileIn, stdout=fileOut).wait()
-        fileIn.close()
-        fileOut.close()
-        self.assertTrue(filecmp.cmp(pathOut, pathExpected, shallow=True), msg=f'{pathNoExtension} wrong output')
+
+        with open(pathIn, "r") as fileIn, open(pathOut, "w") as fileOut:
+            subprocess.Popen((self.runPrefix + pathBinary).split(' '), stdin=fileIn, stdout=fileOut).wait()
+
+        self.assertTrue(self.fileComparator(pathOut, pathExpected), msg=f'{pathNoExtension} wrong output')
 
     def getPaths(self, programPath):
         pathNoExtension = programPath[:programPath.find('.')]
@@ -44,7 +61,8 @@ class Tester(object):
         pathBinary = pathNoExtension + ".bin"
         pathOut = pathNoExtension + ".out"
         pathExpected = pathNoExtension + ".expected"
-        return pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut
+        pathWASM = pathNoExtension + ".wasm"
+        return pathBinary, pathExpected, pathIn, pathLL, pathNoExtension, pathOut, pathWASM
 
     def test(self):
         for file in self.programPaths:
@@ -52,8 +70,8 @@ class Tester(object):
 
     def after(self) -> None:
         for file in self.programPaths:
-            pathBinary, _, _, pathLL, pathNoExtension, pathOut = self.getPaths(file)
-            for file in [pathBinary, pathLL, pathNoExtension, pathOut]:
+            pathBinary, _, _, pathLL, pathNoExtension, pathOut, pathWASM = self.getPaths(file)
+            for file in [pathBinary, pathLL, pathNoExtension, pathOut, pathWASM]:
                 if os.path.isfile(file):
                     os.remove(file)
 
@@ -74,11 +92,25 @@ class TestCompiler(unittest.TestCase):
         tester.after()
 
     def test_modern(self):
-        tester = Tester('test/programs/', '-t 3', self.assertTrue, self.binary)
+        tester = Tester('test/programs/', '-t 3', "clang", "", "", self.assertTrue, self.binary,
+                        lambda e, o: filecmp.cmp(e, o, shallow=False))
         self.general_test(tester)
 
     def test_legacy(self):
-        tester = Tester('test/legacy/', '-t 3 -l', self.assertTrue, self.binary)
+        tester = Tester('test/legacy/', '-t 3 -l', "clang", "", "", self.assertTrue, self.binary,
+                        lambda e, o: filecmp.cmp(e, o, shallow=False))
+        self.general_test(tester)
+
+    def test_modernJS(self):
+        tester = Tester('test/programs/', '-t 3 --target wasm32-unknown-emscripten', "/usr/lib/emscripten/emcc",
+                        "-s EXIT_RUNTIME=1", "node ", self.assertTrue, self.binary,
+                        compareFilesUpToTrailingNewline)
+        self.general_test(tester)
+
+    def test_legacyJS(self):
+        tester = Tester('test/legacy/', '-t 3 -l --target wasm32-unknown-emscripten', "/usr/lib/emscripten/emcc",
+                        "-s EXIT_RUNTIME=1", "node ", self.assertTrue, self.binary,
+                        compareFilesUpToTrailingNewline)
         self.general_test(tester)
 
 

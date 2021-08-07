@@ -1,15 +1,15 @@
-_14        ; store the number of fib elements to calculate at the start of the tape
--2         ; which is decreased by two, as we will print the fist two elements anyway
->_0*>_1*       ; initialize and print the first two elements: 0 and 1
-<<        ; return to the start
-[-        ; decrement the number of numbers left to calculate
->^lastbutone    ; store the last but one element into the variable lastbutone
->^last          ; store the last element into the variable last
->               ; move to the cell we will write the next element into
-_last+lastbutone ;calculate the next element
+_14               ; store the number of fib elements to calculate at the start of the tape
+-2                ; which is decreased by two, as we will print the fist two elements anyway
+>_0*>_1*          ; initialize and print the first two elements: 0 and 1
+<<                ; return to the start
+[-                ; decrement the number of numbers left to calculate
+>^lastbutone      ; store the last but one element into the variable lastbutone
+>^last            ; store the last element into the variable last
+>                 ; move to the cell we will write the next element into
+_last+lastbutone  ; calculate the next element
 *                 ; print it as a number
 ^next             ; store the next element into the next variable
-<_next
+<_next            ; update the last two elements
 <_last
 <
 ]

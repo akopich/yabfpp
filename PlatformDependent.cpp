@@ -26,7 +26,7 @@ bool DefaultPlatform::isCharSigned() {
 
 
 std::unique_ptr<PlatformDependent> getPlatformDependent(const std::string& target) {
-    if (target == "x86_64-pc-linux-gnu")
+    if (target == "x86_64-pc-linux-gnu" || target == "wasm32-unknown-emscripten")
         return std::make_unique<X86_64PCLinuxGNU>();
 
     std::cout << "The platform " << target << " is not explicitly supported. The IR will"
