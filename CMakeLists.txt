@@ -15,7 +15,6 @@ link_libraries()
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE LIBS)
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE SYS_LIBS)
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF)
-#message(STATUS "Found LLVM" ${LIBS})
 
 string(STRIP ${LIBS} LIBS)
 string(STRIP ${SYS_LIBS} SYS_LIBS)
@@ -26,11 +25,7 @@ link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 execute_process(COMMAND llvm-config --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS)
 string(STRIP ${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)
 
-set(BOOST_ROOT /home/valerij/boost)
 find_package(Boost 1.76 COMPONENTS program_options REQUIRED)
-
-#set(Boost_INCLUDE_DIRS /home/valerij/boost)
-#link_directories(/home/valerij/boost/stage/lib)
 
 add_executable(yabfpp main.cpp Expr.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.cpp PlatformDependent.h)
 target_link_libraries(yabfpp ${Boost_LIBRARIES})
