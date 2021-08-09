@@ -9,7 +9,7 @@ def sh(s):
 
 
 # does the same thing as filecmp.cmp, but expectedPath file may contain an additional trailing newline character, as
-# it seems to be impossible to flush stout in JS without adding a newline
+# it seems to be impossible to flush stdout in JS without adding a newline
 def compareFilesUpToTrailingNewline(outPath, expectedPath):
     with open(expectedPath, "r") as expectedFile, open(outPath, "r") as outFile:
         expected = expectedFile.read()
