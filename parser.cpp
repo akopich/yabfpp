@@ -15,27 +15,27 @@
 #include "Source.h"
 #include "SyntaxErrorException.h"
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterator& i, bool defaultOneAllowed);
+std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaultOneAllowed);
 
-Expr* parse(const CompilerState& state, const Source& s, Source::Iterator& i);
+Expr* parse(const CompilerState& state, Source::Iterator& i);
 
-std::string parseVariableName(const Source& s, Source::Iterator& i);
+std::string parseVariableName(Source::Iterator& i);
 
-std::string parseIntLiteral(const Source& s, Source::Iterator& i);
+std::string parseIntLiteral(Source::Iterator& i);
 
 
-Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& i) {
+Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
         case '^':
-            return new WriteToVariable(parseVariableName(s, i));
+            return new WriteToVariable(parseVariableName(i));
         case '_': {
-            return new AssignExpressionValueToTheCurrentCell(parseTrailingVariable(s, i, false));
+            return new AssignExpressionValueToTheCurrentCell(parseTrailingVariable(i, false));
         }
         case '+':
         case '-': {
-            auto add = parseTrailingVariable(s, i, true);
+            auto add = parseTrailingVariable(i, true);
             if (c == '-') {
                 add = std::make_unique<MinusInt8Expr>(move(add));
             }
@@ -49,14 +49,14 @@ Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& 
             return new PrintIntExpr();
         case '<':
         case '>': {
-            auto step = parseTrailingVariable(s, i, true);
+            auto step = parseTrailingVariable(i, true);
             if (c == '<') {
                 step = std::make_unique<MinusInt8Expr>(move(step));
             }
             return new MovePtrExpr(move(step));
         }
         case '[': {
-            auto loop = new LoopExpr(parse(state, s, i));
+            auto loop = new LoopExpr(parse(state, i));
             i++;
             return loop;
         }
@@ -66,7 +66,7 @@ Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& 
 }
 
 template<typename P>
-std::string parseWithPredicate(const Source& s, Source::Iterator& i, P predicate) {
+std::string parseWithPredicate(Source::Iterator& i, P predicate) {
     std::string name;
     while (!i.isEnd() && predicate(*i)) {
         name += *i;
@@ -75,26 +75,26 @@ std::string parseWithPredicate(const Source& s, Source::Iterator& i, P predicate
     return name;
 }
 
-std::string parseVariableName(const Source& s, Source::Iterator& i) {
-    return parseWithPredicate(s, i, [](const char c) { return isalpha(c); });
+std::string parseVariableName(Source::Iterator& i) {
+    return parseWithPredicate(i, [](const char c) { return isalpha(c); });
 }
 
-std::string parseIntLiteral(const Source& s, Source::Iterator& i) {
-    return parseWithPredicate(s, i, [](const char c) { return isdigit(c); });
+std::string parseIntLiteral(Source::Iterator& i) {
+    return parseWithPredicate(i, [](const char c) { return isdigit(c); });
 }
 
-Expr* parse(const CompilerState& state, const Source& s, Source::Iterator& i) {
+Expr* parse(const CompilerState& state, Source::Iterator& i) {
     std::vector<Expr*> v;
     while (!i.isEnd() && *i != ']') {
-        v.push_back(parseToken(state, s, i));
+        v.push_back(parseToken(state, i));
     }
     return new ListExpr(v);
 }
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterator& i, bool defaultOneAllowed) {
-    std::string varname = parseVariableName(s, i);
+std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaultOneAllowed) {
+    std::string varname = parseVariableName(i);
     if (varname.empty()) {
-        std::string intLiteral = parseIntLiteral(s, i);
+        std::string intLiteral = parseIntLiteral(i);
         if (intLiteral.empty()) {
             if (defaultOneAllowed)
                 return std::make_unique<ConstInt8Expr>(1);
@@ -110,5 +110,5 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterato
 
 std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src) {
     auto it = src.begin();
-    return std::unique_ptr<Expr>(parse(state, src, it));
+    return std::unique_ptr<Expr>(parse(state, it));
 }
