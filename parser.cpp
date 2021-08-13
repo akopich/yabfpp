@@ -13,6 +13,7 @@
 
 #include "Expr.h"
 #include "Source.h"
+#include "SyntaxErrorException.h"
 
 std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterator& i, bool defaultOneAllowed);
 
@@ -21,6 +22,7 @@ Expr* parse(const CompilerState& state, const Source& s, Source::Iterator& i);
 std::string parseVariableName(const Source& s, Source::Iterator& i);
 
 std::string parseIntLiteral(const Source& s, Source::Iterator& i);
+
 
 Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& i) {
     char c = *i;
@@ -59,12 +61,9 @@ Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& 
             return loop;
         }
         default:
-            std::cerr << "Unexpected symbol at line: " << i.getLine() << " position:" << i.getLinePosition()
-                      << std::endl;
-            return nullptr;
+            throw SyntaxErrorException(i, "Unexpected symbol.");
     }
 }
-
 
 template<typename P>
 std::string parseWithPredicate(const Source& s, Source::Iterator& i, P predicate) {
@@ -100,7 +99,7 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterato
             if (defaultOneAllowed)
                 return std::make_unique<ConstInt8Expr>(1);
             else
-                throw std::invalid_argument("_ should be followed by a variable name or by an integer literal");
+                throw SyntaxErrorException(i, "_ should be followed by a variable name or by an integer literal");
         } else {
             return std::make_unique<ConstInt8Expr>(std::stoi(intLiteral));
         }
