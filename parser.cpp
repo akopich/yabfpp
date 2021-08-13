@@ -93,19 +93,17 @@ Expr* parse(const CompilerState& state, Source::Iterator& i) {
 
 std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaultOneAllowed) {
     std::string varname = parseVariableName(i);
-    if (varname.empty()) {
-        std::string intLiteral = parseIntLiteral(i);
-        if (intLiteral.empty()) {
-            if (defaultOneAllowed)
-                return std::make_unique<ConstInt8Expr>(1);
-            else
-                throw SyntaxErrorException(i, "_ should be followed by a variable name or by an integer literal");
-        } else {
-            return std::make_unique<ConstInt8Expr>(std::stoi(intLiteral));
-        }
-    } else {
+    if (!varname.empty())
         return std::make_unique<VariableInt8Expr>(varname);
-    }
+
+    std::string intLiteral = parseIntLiteral(i);
+    if (!intLiteral.empty())
+        return std::make_unique<ConstInt8Expr>(std::stoi(intLiteral));
+
+    if (defaultOneAllowed)
+        return std::make_unique<ConstInt8Expr>(1);
+
+    throw SyntaxErrorException(i, "_ should be followed by a variable name or by an integer literal");
 }
 
 std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src) {
