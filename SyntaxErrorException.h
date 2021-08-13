@@ -16,7 +16,7 @@ private:
 public:
     SyntaxErrorException(const Source::Iterator& it, std::string msg);
 
-    const char* what() const noexcept override;
+    [[nodiscard]] const char* what() const noexcept override;
 };
 
 

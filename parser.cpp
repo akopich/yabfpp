@@ -76,11 +76,11 @@ std::string parseWithPredicate(Source::Iterator& i, P predicate) {
 }
 
 std::string parseVariableName(Source::Iterator& i) {
-    return parseWithPredicate(i, [](const char c) { return isalpha(c); });
+    return parseWithPredicate(i, isalpha);
 }
 
 std::string parseIntLiteral(Source::Iterator& i) {
-    return parseWithPredicate(i, [](const char c) { return isdigit(c); });
+    return parseWithPredicate(i, isdigit);
 }
 
 Expr* parse(const CompilerState& state, Source::Iterator& i) {
