@@ -27,5 +27,8 @@ string(STRIP ${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)
 
 find_package(Boost 1.76 COMPONENTS program_options REQUIRED)
 
-add_executable(yabfpp main.cpp Expr.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.cpp PlatformDependent.h)
+add_executable(yabfpp main.cpp Expr.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.cpp PlatformDependent.h Source.cpp Source.h)
 target_link_libraries(yabfpp ${Boost_LIBRARIES})
+
+add_executable(test Source.cpp Source.h test/SourceTest.cpp)
+target_link_libraries(test ${Boost_LIBRARIES})

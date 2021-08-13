@@ -83,7 +83,7 @@ class TestCompiler(unittest.TestCase):
         if os.path.isdir("build"):
             sh("rm -rf build")
         sh("cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=Release")
-        sh("cmake --build build --target all -j 20")
+        sh("cmake --build build --target yabfpp -j 20")
         self.binary = "build/yabfpp"
 
     def general_test(self, tester):

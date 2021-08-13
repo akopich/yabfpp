@@ -6,27 +6,24 @@
 #include "CompilerState.h"
 #include "Expr.h"
 #include "parser.h"
+#include "Source.h"
 
 using namespace boost;
 namespace po = boost::program_options;
 
-std::optional<std::string> readFile(const std::string& inputPath) {
+std::optional<std::vector<std::string>> readFile(const std::string& inputPath) {
     const char COMMENT_SEPARATOR = ';';
     std::ifstream input(inputPath);
     if (!input.good())
         return std::nullopt;
-    std::string program;
+    std::vector<std::string> program;
     for (std::string line; getline(input, line);) {
-        program += line.substr(0, line.find(COMMENT_SEPARATOR, 0));
+        program.push_back(line.substr(0, line.find(COMMENT_SEPARATOR, 0)));
     }
     return program;
 }
 
-/**
- * cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=Release
- * cmake --build build --target all -j 20
- * @return
- */
+
 int main(int ac, char* av[]) {
     std::string inputPath;
     std::string outPath;
@@ -65,15 +62,16 @@ int main(int ac, char* av[]) {
         return 0;
     }
 
-    std::optional<std::string> program = readFile(inputPath);
+    std::optional<std::vector<std::string>> program = readFile(inputPath);
     if (!program.has_value()) {
         std::cout << "Input file doesn't exist" << std::endl;
         return 1;
     }
+    Source src = getSource(program.value(), legacyMode);
 
     auto state = initCompilerState(inputPath, targetTriple);
     auto machine = state.init(initialTapeSize);
-    auto expr = parse(state, program.value(), legacyMode);
+    auto expr = parse(state, src);
     expr->generate(machine);
     state.finalizeAndPrintIRtoFile(outPath);
     return 0;

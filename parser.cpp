@@ -12,17 +12,18 @@
 
 
 #include "Expr.h"
+#include "Source.h"
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bool defaultOneAllowed);
+std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterator& i, bool defaultOneAllowed);
 
-Expr* parse(const CompilerState& state, const std::string& s, int& i);
+Expr* parse(const CompilerState& state, const Source& s, Source::Iterator& i);
 
-std::string parseVariableName(const std::string& s, int& i);
+std::string parseVariableName(const Source& s, Source::Iterator& i);
 
-std::string parseIntLiteral(const std::string& s, int& i);
+std::string parseIntLiteral(const Source& s, Source::Iterator& i);
 
-Expr* parseToken(const CompilerState& state, const std::string& s, int& i) {
-    char c = s[i];
+Expr* parseToken(const CompilerState& state, const Source& s, Source::Iterator& i) {
+    char c = *i;
     i++;
     switch (c) {
         case '^':
@@ -58,39 +59,40 @@ Expr* parseToken(const CompilerState& state, const std::string& s, int& i) {
             return loop;
         }
         default:
-            std::cerr << "Unexpected symbol at " << i << std::endl;
+            std::cerr << "Unexpected symbol at line: " << i.getLine() << " position:" << i.getLinePosition()
+                      << std::endl;
             return nullptr;
     }
 }
 
 
 template<typename P>
-std::string parseWithPredicate(const std::string& s, int& i, P predicate) {
+std::string parseWithPredicate(const Source& s, Source::Iterator& i, P predicate) {
     std::string name;
-    while (i < s.size() && predicate(s[i])) {
-        name += s[i];
+    while (!i.isEnd() && predicate(*i)) {
+        name += *i;
         i++;
     }
     return name;
 }
 
-std::string parseVariableName(const std::string& s, int& i) {
+std::string parseVariableName(const Source& s, Source::Iterator& i) {
     return parseWithPredicate(s, i, [](const char c) { return isalpha(c); });
 }
 
-std::string parseIntLiteral(const std::string& s, int& i) {
+std::string parseIntLiteral(const Source& s, Source::Iterator& i) {
     return parseWithPredicate(s, i, [](const char c) { return isdigit(c); });
 }
 
-Expr* parse(const CompilerState& state, const std::string& s, int& i) {
+Expr* parse(const CompilerState& state, const Source& s, Source::Iterator& i) {
     std::vector<Expr*> v;
-    while (i < s.size() && s[i] != ']') {
+    while (!i.isEnd() && *i != ']') {
         v.push_back(parseToken(state, s, i));
     }
     return new ListExpr(v);
 }
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bool defaultOneAllowed) {
+std::unique_ptr<Int8Expr> parseTrailingVariable(const Source& s, Source::Iterator& i, bool defaultOneAllowed) {
     std::string varname = parseVariableName(s, i);
     if (varname.empty()) {
         std::string intLiteral = parseIntLiteral(s, i);
@@ -107,29 +109,7 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(const std::string& s, int& i, bo
     }
 }
 
-template<typename P>
-std::string filterString(const std::string& s, P predicate) {
-    std::string res = s;
-    res.erase(std::remove_if(res.begin(), res.end(), predicate), res.end());
-    return res;
-}
-
-std::string removeWhitespaces(const std::string& s) {
-    return filterString(s, ::isspace);
-}
-
-std::string removeAllButLegacyCharacters(const std::string& s) {
-    std::set<char> legacyCharacters = {'[', ']', '>', '<', '+', '-', '.', ','};
-    return filterString(s, [&](const char c) { return legacyCharacters.count(c) == 0; });
-}
-
-std::unique_ptr<Expr> parse(const CompilerState& state, const std::string& s, bool legacyMode) {
-    int i = 0;
-    std::string preprocessed;
-    if (legacyMode) {
-        preprocessed = removeAllButLegacyCharacters(s);
-    } else {
-        preprocessed = removeWhitespaces(s);
-    }
-    return std::unique_ptr<Expr>(parse(state, preprocessed, i));
+std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src) {
+    auto it = src.begin();
+    return std::unique_ptr<Expr>(parse(state, src, it));
 }
