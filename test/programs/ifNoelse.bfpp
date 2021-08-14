@@ -1,0 +1,3 @@
+; The program reads pairs of chars in a loop. 
+; If the chars are not equal, `!` is printed. nothing is printed otherwise. 
+,[^x>,-x{_33.},]
