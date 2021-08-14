@@ -11,7 +11,7 @@ BF++ extends BF in a number of ways
 - the tape size is not limited to 30,000 cells and is virtually unlimited.
 - each cell is a signed 8-bit integer.
 - if/else construction. `{ifblock}{elseblock}` will run only `ifblock` if the current cell stores a non-zero value and `elseblock` will be run otherwise.
-- signed integer 8-bit variables are supported. 
+- signed integer 8-bit variables are supported. Else block is optional.
   - `^variablename` copies the value of the current cell to the variable `variablename`. 
   - `_variablename` copes the value of the variable `variable name` to the current cell. 
   - Either operation also defines the variable if it has not beed used before.
