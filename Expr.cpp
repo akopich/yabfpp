@@ -42,15 +42,15 @@ void PrintExpr::generate(BFMachine& machine) const {
 }
 
 void ListExpr::generate(BFMachine& machine) const {
-    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) { // TODO use range-based for
+    for (Expr* e : v) {
         e->generate(machine);
-    });
+    }
 }
 
 ListExpr::~ListExpr() {
-    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) { // TODO use range-based for
+    for (Expr* e : v) {
         delete e;
-    });
+    }
 }
 
 ListExpr::ListExpr(vector<Expr*> v) : v(move(v)) {}
