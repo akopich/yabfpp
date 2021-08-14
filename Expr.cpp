@@ -42,18 +42,18 @@ void PrintExpr::generate(BFMachine& machine) const {
 }
 
 void ListExpr::generate(BFMachine& machine) const {
-    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) {
+    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) { // TODO use range-based for
         e->generate(machine);
     });
 }
 
 ListExpr::~ListExpr() {
-    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) {
+    for_each(this->v.begin(), this->v.end(), [&](const Expr* e) { // TODO use range-based for
         delete e;
     });
 }
 
-ListExpr::ListExpr(const vector<Expr*>& v) : v(v) {}
+ListExpr::ListExpr(vector<Expr*> v) : v(move(v)) {}
 
 Expr::~Expr() = default;
 
@@ -113,4 +113,31 @@ MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
 void PrintIntExpr::generate(BFMachine& machine) const {
     machine.state->clib->generateCallPrintfInt(machine.getCurrentChar());
+}
+
+IfElse::IfElse(unique_ptr<Expr> ifExpr, unique_ptr<Expr> elseExpr) : ifExpr(move(ifExpr)), elseExpr(move(elseExpr)) {}
+
+void IfElse::generate(BFMachine& machine) const {
+    auto cond = machine.builder->CreateICmpNE(machine.getCurrentChar(), machine.state->getConstChar(0),
+                                              "check if/else condition");
+    llvm::BasicBlock* ifBodyBB = machine.state->createBasicBlock("if branch body");
+    llvm::BasicBlock* elseBodyBB = machine.state->createBasicBlock("else branch body");
+    llvm::BasicBlock* afterBodyBB = machine.state->createBasicBlock("after if/else block");
+
+    machine.builder->CreateCondBr(cond, ifBodyBB, elseBodyBB);
+
+    machine.builder->SetInsertPoint(ifBodyBB);
+    ifExpr->generate(machine);
+    machine.builder->CreateBr(afterBodyBB);
+
+    machine.builder->SetInsertPoint(elseBodyBB);
+    elseExpr->generate(machine);
+    machine.builder->CreateBr(afterBodyBB);
+
+    machine.builder->SetInsertPoint(afterBodyBB);
+}
+
+
+std::unique_ptr<Expr> getNoOpExpr() {
+    return std::make_unique<ListExpr>(std::vector<Expr*>());
 }

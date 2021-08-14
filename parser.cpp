@@ -28,6 +28,18 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
+        case '{': {
+            auto ifExpr = parse(state, i);
+            i++;
+            if (*i == '{') {
+                i++;
+                auto elseExpr = parse(state, i);
+                i++;
+                return new IfElse(std::unique_ptr<Expr>(ifExpr), std::unique_ptr<Expr>(elseExpr));
+            }
+
+            return new IfElse(std::unique_ptr<Expr>(ifExpr), getNoOpExpr());
+        }
         case '^':
             return new WriteToVariable(parseVariableName(i));
         case '_': {
@@ -85,7 +97,7 @@ std::string parseIntLiteral(Source::Iterator& i) {
 
 Expr* parse(const CompilerState& state, Source::Iterator& i) {
     std::vector<Expr*> v;
-    while (!i.isEnd() && *i != ']') {
+    while (!i.isEnd() && *i != ']' && *i != '}') {
         v.push_back(parseToken(state, i));
     }
     return new ListExpr(v);

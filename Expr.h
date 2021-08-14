@@ -96,7 +96,7 @@ private:
     std::vector<Expr*> v;
 
 public:
-    explicit ListExpr(const std::vector<Expr*>& v);
+    explicit ListExpr(std::vector<Expr*> v);
 
     ListExpr(const ListExpr& e) = delete;
 
@@ -125,5 +125,18 @@ public:
     void generate(BFMachine& machine) const override;
 };
 
+
+class IfElse : public Expr {
+private:
+    std::unique_ptr<Expr> ifExpr;
+    std::unique_ptr<Expr> elseExpr;
+public:
+    IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr);
+
+    void generate(BFMachine& machine) const override;
+};
+
+
+std::unique_ptr<Expr> getNoOpExpr();
 
 #endif //YABF_EXPR_H
