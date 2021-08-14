@@ -10,6 +10,7 @@ yabfpp (Yet Another BF++) is a cross-platform compiler of the new dialect BF++ o
 BF++ extends BF in a number of ways
 - the tape size is not limited to 30,000 cells and is virtually unlimited.
 - each cell is a signed 8-bit integer.
+- if/else construction. `{ifblock}{elseblock}` will run only `ifblock` if the current cell stores a non-zero value and `elseblock` will be run otherwise.
 - signed integer 8-bit variables are supported. 
   - `^variablename` copies the value of the current cell to the variable `variablename`. 
   - `_variablename` copes the value of the variable `variable name` to the current cell. 
@@ -20,7 +21,7 @@ BF++ extends BF in a number of ways
   - `>50` and `<50` move the pointer right (or left) 50 times
   - `+50` and `-50` increase (decrease) the value of the current cell 50 times.
 - `*` prints the value of the current cell as an integer. 
-- BF used to ignore all the characters but `<`, `>`, `+`, `-`, `.`, `,`,`[`, `]`. We abandon this and require a comment to start with a semicolon. The old classical is still supported via a legacy mode. 
+- BF used to ignore all the characters but `<`, `>`, `+`, `-`, `.`, `,`,`[`, `]`. We abandon this and require a comment to start with a semicolon. The classical behaviour is still supported via a legacy mode. 
 
 ## Code example 
 Here we calculate and print 14 first Fibonacci numbers. 
