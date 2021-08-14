@@ -80,8 +80,8 @@ void CompilerState::generateTapeDoublingFunction() {
                                                     false,
                                                     "doubleTapeIfNeeded");
 
-    llvm::BasicBlock* functionBody = llvm::BasicBlock::Create(module->getContext(), "doubleTapeIfNeeded",
-                                                              doubler); // TODO use createBasicBlock method
+    llvm::BasicBlock* functionBody = createBasicBlock("doubleTapeIfNeeded", doubler);
+
     builder->SetInsertPoint(functionBody);
 
     auto it = doubler->args().begin();
@@ -124,7 +124,7 @@ void CompilerState::generateReadCharFunction() {
                                                      builder->getInt8Ty(),
                                                      false,
                                                      "readChar");
-    llvm::BasicBlock* functionBody = createBasicBlock("readChar", readChar); // TODO use createBasicBlock method
+    llvm::BasicBlock* functionBody = createBasicBlock("readChar", readChar);
     builder->SetInsertPoint(functionBody);
 
     llvm::Value* readInt = clib->generateCallGetChar();
