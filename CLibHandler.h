@@ -9,10 +9,11 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
 #include "CompilerState.h"
+#include "ConstantHelper.h"
 
 class CompilerState;
 
-class CLibHandler {
+class CLibHandler : public ConstantHelper {
 private:
     llvm::Module* module;
 
@@ -31,6 +32,9 @@ private:
     void generateMemcpy() const;
 
     void init() const;
+
+protected:
+    llvm::LLVMContext* getContext() const override;
 
 public:
     friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);

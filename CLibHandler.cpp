@@ -42,8 +42,7 @@ llvm::Value* CLibHandler::generateCallGetChar() const {
 
 llvm::Value* CLibHandler::generateCallCalloc(llvm::Value* size) const {
     return builder->CreateCall(module->getFunction("calloc"),
-                               {size, llvm::ConstantInt::get(module->getContext(),
-                                                             llvm::APInt(32, 8))}); // TODO getConstant double
+                               {size, getConstInt(8)});
 }
 
 void CLibHandler::generateCalloc() const {
@@ -95,4 +94,8 @@ void CLibHandler::init() const {
 }
 
 CLibHandler::CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder) : module(module), builder(builder) {}
+
+llvm::LLVMContext* CLibHandler::getContext() const {
+    return &module->getContext();
+}
 

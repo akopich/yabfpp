@@ -44,19 +44,6 @@ void CompilerState::return0FromMain() const {
     builder->CreateRet(getConstInt(0));
 }
 
-llvm::Value* CompilerState::getConstChar(const char c) const {
-    return llvm::ConstantInt::get(*context, llvm::APInt(8, c));
-}
-
-llvm::Value* CompilerState::getConst64(const int i) const {
-    return llvm::ConstantInt::get(*context, llvm::APInt(64, i));
-}
-
-llvm::Value* CompilerState::getConstInt(const int i) const {
-    return llvm::ConstantInt::get(*context, llvm::APInt(32, i));
-}
-
-
 BFMachine CompilerState::init(const int tapeSize) {
     auto tape = clib->generateCallCalloc(getConstInt(tapeSize));
 
@@ -202,4 +189,8 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     state.generateEntryPoint();
 
     return state;
+}
+
+llvm::LLVMContext* CompilerState::getContext() const {
+    return context.get();
 }

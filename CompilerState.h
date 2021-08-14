@@ -38,12 +38,13 @@
 #include "BFMachine.h"
 #include "CLibHandler.h"
 #include "PlatformDependent.h"
+#include "ConstantHelper.h"
 
 class BFMachine;
 
 class CLibHandler;
 
-class CompilerState {
+class CompilerState : public ConstantHelper {
 private:
 
     void generateEntryPoint();
@@ -60,6 +61,9 @@ private:
     void generateTapeDoublingFunction();
 
     void generateReadCharFunction();
+
+protected:
+    llvm::LLVMContext* getContext() const override;
 
 public:
     friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
@@ -79,12 +83,6 @@ public:
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
     BFMachine init(int tapeSize);
-
-    [[nodiscard]] llvm::Value* getConstInt(int i) const;
-
-    [[nodiscard]] llvm::Value* getConst64(int i) const;
-
-    [[nodiscard]] llvm::Value* getConstChar(char c) const;
 
     void finalizeAndPrintIRtoFile(const std::string& outPath) const;
 
