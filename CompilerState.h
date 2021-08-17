@@ -106,6 +106,8 @@ public:
 
     llvm::Value* CreateLoad(llvm::Value* ptr) const;
 
+    llvm::Value* CreateStore(llvm::Value* value, llvm::Value* ptr) const;
+
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
 
     void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const;

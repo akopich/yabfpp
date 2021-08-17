@@ -16,6 +16,7 @@ class BFMachine;
 class CallStack {
 private:
     const int SIZE;
+    const int initialTapeSize;
 
     CompilerState* state;
 
@@ -24,15 +25,32 @@ private:
     llvm::Value* tapeSizePtr;               // i32*
     llvm::Value* currentHeadIndex;          // i32*
 
+    void incrementCurrentHeadIndex();
+
+    void decrementCurrentHeadIndex();
+
+    llvm::Value* getCurrentHeadIndex();
+
+    llvm::Value* getCurrentTapePtr();
+
+    llvm::Value* getCurrentPointer();
+
+    llvm::Value* getCurrentTapeSizePtr();
+
 public:
 
     CallStack(int size,
+              int initialTapeSize,
               CompilerState* state,
               llvm::Value* tapePtr,
               llvm::Value* pointer,
               llvm::Value* tapeSizePtr);
 
     BFMachine getBFMachine();
+
+    void push();
+
+    void pop();
 };
 
 std::unique_ptr<CallStack> initCallStack(CompilerState* state, int tapeSize, int callStackSize);

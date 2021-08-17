@@ -145,6 +145,7 @@ llvm::Value* CompilerState::CreateLoad(llvm::Value* ptr) const {
     return builder->CreateLoad(ptr);
 }
 
+
 llvm::Value* CompilerState::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
     return builder->CreateAdd(lhs, rhs, name);
 }
@@ -196,4 +197,8 @@ BFMachine CompilerState::getBFMachine() {
 
 VariableHandler& CompilerState::getVariableHandler() {
     return *variableHandler;
+}
+
+llvm::Value* CompilerState::CreateStore(llvm::Value* value, llvm::Value* ptr) const {
+    return builder->CreateStore(value, ptr);
 }
