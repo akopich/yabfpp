@@ -9,25 +9,25 @@
 using namespace std;
 
 void MovePtrExpr::generate(CompilerState& state) const {
-    BFMachine* bfMachine = state.getBFMachine();
-    llvm::Value* index = bfMachine->getIndex();
+    BFMachine bfMachine = state.getBFMachine();
+    llvm::Value* index = bfMachine.getIndex();
     llvm::Value* stepValueI8 = steps->generate(state);
 
     llvm::Value* stepValueI32 = state.builder->CreateIntCast(stepValueI8, state.builder->getInt32Ty(), true);
     auto newIndex = state.CreateAdd(index, stepValueI32, "move pointer");
 
-    state.generateCallTapeDoublingFunction(*bfMachine, newIndex);
+    state.generateCallTapeDoublingFunction(bfMachine, newIndex);
 
-    state.builder->CreateStore(newIndex, bfMachine->pointer);
+    state.builder->CreateStore(newIndex, bfMachine.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
 
 void AddExpr::generate(CompilerState& state) const {
-    BFMachine* bfMachine = state.getBFMachine();
-    llvm::Value* theChar = bfMachine->getCurrentChar();
+    BFMachine bfMachine = state.getBFMachine();
+    llvm::Value* theChar = bfMachine.getCurrentChar();
     llvm::Value* newChar = state.CreateAdd(theChar, this->add->generate(state), "add char");
-    bfMachine->setCurrentChar(newChar);
+    bfMachine.setCurrentChar(newChar);
 }
 
 AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
@@ -35,11 +35,11 @@ AddExpr::AddExpr(unique_ptr<Int8Expr> add) : add(std::move(add)) {}
 
 void ReadExpr::generate(CompilerState& state) const {
     llvm::Value* readChar = state.generateCallReadCharFunction();
-    state.getBFMachine()->setCurrentChar(readChar);
+    state.getBFMachine().setCurrentChar(readChar);
 }
 
 void PrintExpr::generate(CompilerState& state) const {
-    state.clib->generateCallPutChar(state.getBFMachine()->getCurrentChar());
+    state.clib->generateCallPutChar(state.getBFMachine().getCurrentChar());
 }
 
 void ListExpr::generate(CompilerState& state) const {
@@ -65,7 +65,7 @@ void LoopExpr::generate(CompilerState& state) const {
     state.builder->CreateBr(loopCondBB);
 
     state.builder->SetInsertPoint(loopCondBB);
-    auto cond = state.builder->CreateICmpNE(state.getBFMachine()->getCurrentChar(), state.getConstChar(0),
+    auto cond = state.builder->CreateICmpNE(state.getBFMachine().getCurrentChar(), state.getConstChar(0),
                                             "check loop condition");
     state.builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
 
@@ -80,13 +80,13 @@ LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
 
 void WriteToVariable::generate(CompilerState& state) const {
     llvm::Value* ptr = state.getVariableHandler().getVariablePtr(name);
-    state.builder->CreateStore(state.getBFMachine()->getCurrentChar(), ptr);
+    state.builder->CreateStore(state.getBFMachine().getCurrentChar(), ptr);
 }
 
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
 
 void AssignExpressionValueToTheCurrentCell::generate(CompilerState& state) const {
-    state.getBFMachine()->setCurrentChar(variable->generate(state));
+    state.getBFMachine().setCurrentChar(variable->generate(state));
 }
 
 AssignExpressionValueToTheCurrentCell::AssignExpressionValueToTheCurrentCell(std::unique_ptr<Int8Expr> variable)
@@ -113,13 +113,13 @@ llvm::Value* MinusInt8Expr::generate(CompilerState& state) const {
 MinusInt8Expr::MinusInt8Expr(unique_ptr<Int8Expr> value) : value(move(value)) {}
 
 void PrintIntExpr::generate(CompilerState& state) const {
-    state.clib->generateCallPrintfInt(state.getBFMachine()->getCurrentChar());
+    state.clib->generateCallPrintfInt(state.getBFMachine().getCurrentChar());
 }
 
 IfElse::IfElse(unique_ptr<Expr> ifExpr, unique_ptr<Expr> elseExpr) : ifExpr(move(ifExpr)), elseExpr(move(elseExpr)) {}
 
 void IfElse::generate(CompilerState& state) const {
-    auto cond = state.builder->CreateICmpNE(state.getBFMachine()->getCurrentChar(), state.getConstChar(0),
+    auto cond = state.builder->CreateICmpNE(state.getBFMachine().getCurrentChar(), state.getConstChar(0),
                                             "check if/else condition");
     llvm::BasicBlock* ifBodyBB = state.createBasicBlock("if branch body");
     llvm::BasicBlock* elseBodyBB = state.createBasicBlock("else branch body");

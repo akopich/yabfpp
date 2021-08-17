@@ -40,6 +40,7 @@
 #include "PlatformDependent.h"
 #include "ConstantHelper.h"
 #include "VariableHandler.h"
+#include "CallStack.h"
 
 class BFMachine;
 
@@ -47,8 +48,11 @@ class CLibHandler;
 
 class VariableHandler;
 
+class CallStack;
+
 class CompilerState : public ConstantHelper {
 private:
+    const int CALL_STACK_SIZE = 100;
 
     void generateEntryPoint();
 
@@ -57,7 +61,7 @@ private:
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<PlatformDependent> platformDependent;
-    std::unique_ptr<BFMachine> bfMachine;
+    std::unique_ptr<CallStack> callStack;
     std::unique_ptr<VariableHandler> variableHandler;
 
 
@@ -80,7 +84,7 @@ public:
                   std::unique_ptr<CLibHandler> clib,
                   std::unique_ptr<PlatformDependent> platformDependent);
 
-    BFMachine* getBFMachine();
+    BFMachine getBFMachine();
 
     VariableHandler& getVariableHandler();
 

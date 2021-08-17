@@ -35,14 +35,12 @@ void CLibHandler::generateGetChar() const {
 }
 
 llvm::Value* CLibHandler::generateCallGetChar() const {
-    std::vector<llvm::Value*> args = {};
-    return builder->CreateCall(module->getFunction("getchar"), args);
+    return builder->CreateCall(module->getFunction("getchar"), {});
 }
 
 
 llvm::Value* CLibHandler::generateCallCalloc(llvm::Value* size) const {
-    return builder->CreateCall(module->getFunction("calloc"),
-                               {size, getConstInt(8)});
+    return builder->CreateCall(module->getFunction("calloc"), {size, getConstInt(8)});
 }
 
 void CLibHandler::generateCalloc() const {
