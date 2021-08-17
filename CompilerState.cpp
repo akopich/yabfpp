@@ -52,6 +52,7 @@ void CompilerState::init(const int tapeSize) {
     auto tapePtr = allocateAndInitialize(builder->getInt8PtrTy(), tape);
 
     bfMachine = std::make_unique<BFMachine>(tapePtr, pointer, tapeSizePtr, this);
+    variableHandler = std::make_unique<VariableHandler>(this);
 }
 
 llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Function* function) const {
@@ -197,4 +198,8 @@ llvm::LLVMContext* CompilerState::getContext() const {
 
 BFMachine* CompilerState::getBFMachine() {
     return bfMachine.get();
+}
+
+VariableHandler& CompilerState::getVariableHandler() {
+    return *variableHandler;
 }

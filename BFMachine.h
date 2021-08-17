@@ -31,8 +31,7 @@ public:
     llvm::Value* pointer;
     llvm::Value* tapeSizePtr;
     const CompilerState* state;
-    llvm::IRBuilder<>* builder;
-    std::map<std::string, llvm::Value*> variableName2Ptr;
+
 
     BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state);
 
@@ -47,10 +46,6 @@ public:
     [[nodiscard]] llvm::Value* getCurrentChar() const;
 
     void setCurrentChar(llvm::Value* theChar) const;
-
-    llvm::Value* getVariablePtr(const std::string& name);
-
-    llvm::Value* getVariableValue(const std::string& name);
 };
 
 

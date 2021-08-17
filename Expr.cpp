@@ -79,9 +79,8 @@ void LoopExpr::generate(CompilerState& state) const {
 LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
 
 void WriteToVariable::generate(CompilerState& state) const {
-    BFMachine* bfMachine = state.getBFMachine();
-    llvm::Value* ptr = bfMachine->getVariablePtr(name);
-    state.builder->CreateStore(bfMachine->getCurrentChar(), ptr);
+    llvm::Value* ptr = state.getVariableHandler().getVariablePtr(name);
+    state.builder->CreateStore(state.getBFMachine()->getCurrentChar(), ptr);
 }
 
 WriteToVariable::WriteToVariable(string name) : name(std::move(name)) {}
@@ -95,7 +94,7 @@ AssignExpressionValueToTheCurrentCell::AssignExpressionValueToTheCurrentCell(std
 
 
 llvm::Value* VariableInt8Expr::generate(CompilerState& state) const {
-    return state.getBFMachine()->getVariableValue(name);
+    return state.getVariableHandler().getVariableValue(name);
 }
 
 VariableInt8Expr::VariableInt8Expr(string name) : name(std::move(name)) {}

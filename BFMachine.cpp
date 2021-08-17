@@ -21,9 +21,7 @@ llvm::Value* BFMachine::getTapeSize() const {
 }
 
 BFMachine::BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state)
-        : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state) {
-    builder = state->builder.get();
-}
+        : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state) {}
 
 llvm::Value* BFMachine::getTape() const {
     return state->CreateLoad(tapePtr);
@@ -31,24 +29,4 @@ llvm::Value* BFMachine::getTape() const {
 
 void BFMachine::setTapePtr(llvm::Value* tape) const {
     state->builder->CreateStore(tape, tapePtr);
-}
-
-/**
- * Does not initialize the pointee
- *
- * @param name
- * @return
- */
-llvm::Value* BFMachine::getVariablePtr(const std::string& name) {
-    auto it = variableName2Ptr.find(name);
-    if (it != variableName2Ptr.end()) {
-        return it->second;
-    }
-    auto ptr = state->builder->CreateAlloca(state->builder->getInt8Ty());
-    variableName2Ptr[name] = ptr;
-    return ptr;
-}
-
-llvm::Value* BFMachine::getVariableValue(const std::string& name) {
-    return state->builder->CreateLoad(getVariablePtr(name));
 }

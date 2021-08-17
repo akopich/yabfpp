@@ -39,10 +39,13 @@
 #include "CLibHandler.h"
 #include "PlatformDependent.h"
 #include "ConstantHelper.h"
+#include "VariableHandler.h"
 
 class BFMachine;
 
 class CLibHandler;
+
+class VariableHandler;
 
 class CompilerState : public ConstantHelper {
 private:
@@ -55,6 +58,7 @@ private:
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<PlatformDependent> platformDependent;
     std::unique_ptr<BFMachine> bfMachine;
+    std::unique_ptr<VariableHandler> variableHandler;
 
 
     llvm::Function* main{};
@@ -77,6 +81,8 @@ public:
                   std::unique_ptr<PlatformDependent> platformDependent);
 
     BFMachine* getBFMachine();
+
+    VariableHandler& getVariableHandler();
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
