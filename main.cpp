@@ -46,8 +46,7 @@ int main(int ac, char* av[]) {
     po::positional_options_description p;
     p.add("input-file", -1);
     po::variables_map vm;
-    po::store(po::command_line_parser(ac, av).
-            options(desc).positional(p).run(), vm);
+    po::store(po::command_line_parser(ac, av).options(desc).positional(p).run(), vm);
     po::notify(vm);
 
     if (vm.count("help") > 0) {
@@ -59,7 +58,7 @@ int main(int ac, char* av[]) {
     if (vm.count("input-file") == 0) {
         std::cout << "fatal error: no input files" << std::endl;
         std::cout << "compilation terminated." << std::endl;
-        return 0;
+        return 1;
     }
 
     std::optional<std::vector<std::string>> program = readFile(inputPath);
@@ -70,9 +69,9 @@ int main(int ac, char* av[]) {
     Source src = getSource(program.value(), legacyMode);
 
     auto state = initCompilerState(inputPath, targetTriple);
-    auto machine = state.init(initialTapeSize);
+    state.init(initialTapeSize);
     auto expr = parse(state, src);
-    expr->generate(machine);
+    expr->generate(state);
     state.finalizeAndPrintIRtoFile(outPath);
     return 0;
 }

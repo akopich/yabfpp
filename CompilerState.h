@@ -54,6 +54,8 @@ private:
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<PlatformDependent> platformDependent;
+    std::unique_ptr<BFMachine> bfMachine;
+
 
     llvm::Function* main{};
 
@@ -74,6 +76,8 @@ public:
                   std::unique_ptr<CLibHandler> clib,
                   std::unique_ptr<PlatformDependent> platformDependent);
 
+    BFMachine* getBFMachine();
+
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
     std::unique_ptr<CLibHandler> clib;
@@ -82,7 +86,7 @@ public:
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
-    BFMachine init(int tapeSize);
+    void init(int tapeSize);
 
     void finalizeAndPrintIRtoFile(const std::string& outPath) const;
 

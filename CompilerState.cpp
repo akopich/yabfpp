@@ -44,14 +44,14 @@ void CompilerState::return0FromMain() const {
     builder->CreateRet(getConstInt(0));
 }
 
-BFMachine CompilerState::init(const int tapeSize) {
+void CompilerState::init(const int tapeSize) {
     auto tape = clib->generateCallCalloc(getConstInt(tapeSize));
 
     auto pointer = allocateAndInitialize(builder->getInt32Ty(), getConstInt(0));
     auto tapeSizePtr = allocateAndInitialize(builder->getInt32Ty(), getConstInt(tapeSize));
     auto tapePtr = allocateAndInitialize(builder->getInt8PtrTy(), tape);
 
-    return {tapePtr, pointer, tapeSizePtr, this};
+    bfMachine = std::make_unique<BFMachine>(tapePtr, pointer, tapeSizePtr, this);
 }
 
 llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Function* function) const {
@@ -193,4 +193,8 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
 
 llvm::LLVMContext* CompilerState::getContext() const {
     return context.get();
+}
+
+BFMachine* CompilerState::getBFMachine() {
+    return bfMachine.get();
 }
