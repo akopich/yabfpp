@@ -1,0 +1,10 @@
+@fib(n) {_n{-{^prev
+              $fib(prev)
+              ^fibprev
+              _prev
+              -
+              ^prevprev
+              $fib(prevprev)
+              +fibprev}{_1}}{_0}\}
+
+_12^x$fib(x)*
