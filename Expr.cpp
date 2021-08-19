@@ -11,20 +11,21 @@ void MovePtrExpr::generate(BFMachine& bfMachine) const {
     llvm::Value* stepValueI8 = steps->generate(bfMachine);
 
     auto& state = *bfMachine.state;
+    auto& builder = state.builder;
 
-    llvm::Value* stepValueI32 = state.builder->CreateIntCast(stepValueI8, state.builder->getInt32Ty(), true);
+    llvm::Value* stepValueI32 = builder->CreateIntCast(stepValueI8, builder->getInt32Ty(), true);
     auto newIndex = state.CreateAdd(index, stepValueI32, "move pointer");
 
     state.generateCallTapeDoublingFunction(bfMachine, newIndex);
 
-    state.builder->CreateStore(newIndex, bfMachine.pointer);
+    builder->CreateStore(newIndex, bfMachine.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
 
 void AddExpr::generate(BFMachine& bfMachine) const {
     llvm::Value* theChar = bfMachine.getCurrentChar();
-    llvm::Value* newChar = bfMachine.state->CreateAdd(theChar, this->add->generate(bfMachine), "add char");
+    llvm::Value* newChar = bfMachine.state->CreateAdd(theChar, add->generate(bfMachine), "add char");
     bfMachine.setCurrentChar(newChar);
 }
 
@@ -58,28 +59,30 @@ Expr::~Expr() = default;
 
 void LoopExpr::generate(BFMachine& bfMachine) const {
     auto& state = *bfMachine.state;
+    auto& builder = state.builder;
     llvm::BasicBlock* loopCondBB = state.createBasicBlock("loop cond");
     llvm::BasicBlock* loopBodyBB = state.createBasicBlock("loop body");
     llvm::BasicBlock* afterLoopBB = state.createBasicBlock("after loop");
-    state.builder->CreateBr(loopCondBB);
+    builder->CreateBr(loopCondBB);
 
-    state.builder->SetInsertPoint(loopCondBB);
-    auto cond = state.builder->CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
-                                            "check loop condition");
-    state.builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
+    builder->SetInsertPoint(loopCondBB);
+    auto cond = builder->CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
+                                      "check loop condition");
+    builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
 
-    state.builder->SetInsertPoint(loopBodyBB);
+    builder->SetInsertPoint(loopBodyBB);
     body->generate(bfMachine);
-    state.builder->CreateBr(loopCondBB);
+    builder->CreateBr(loopCondBB);
 
-    state.builder->SetInsertPoint(afterLoopBB);
+    builder->SetInsertPoint(afterLoopBB);
 }
 
 LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
 
 void WriteToVariable::generate(BFMachine& bfMachine) const {
-    llvm::Value* ptr = bfMachine.state->getVariableHandler().getVariablePtr(name);
-    bfMachine.state->builder->CreateStore(bfMachine.getCurrentChar(), ptr);
+    CompilerState* state = bfMachine.state;
+    llvm::Value* ptr = state->getVariableHandler().getVariablePtr(name);
+    state->builder->CreateStore(bfMachine.getCurrentChar(), ptr);
 }
 
 WriteToVariable::WriteToVariable(std::string name) : name(std::move(name)) {}
@@ -106,7 +109,8 @@ ConstInt8Expr::ConstInt8Expr(char value) : value(value) {}
 
 llvm::Value* MinusInt8Expr::generate(BFMachine& bfMachine) const {
     auto beforeMinus = value->generate(bfMachine);
-    return bfMachine.state->builder->CreateMul(beforeMinus, bfMachine.state->getConstChar(-1));
+    CompilerState* state = bfMachine.state;
+    return state->builder->CreateMul(beforeMinus, state->getConstChar(-1));
 }
 
 MinusInt8Expr::MinusInt8Expr(std::unique_ptr<Int8Expr> value) : value(move(value)) {}
@@ -119,8 +123,8 @@ IfElse::IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr) : i
                                                                                elseExpr(move(elseExpr)) {}
 
 void IfElse::generate(BFMachine& bfMachine) const {
-    auto& builder = *bfMachine.state->builder;
     auto& state = *bfMachine.state;
+    auto& builder = *state.builder;
     auto cond = builder.CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
                                      "check if/else condition");
     llvm::BasicBlock* ifBodyBB = state.createBasicBlock("if branch body");
@@ -152,31 +156,34 @@ BFFunctionDeclaration::BFFunctionDeclaration(std::string functionName,
                                                                            body(move(body)) {}
 
 void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
-    bfMachine.state->pushVariableHandlerStack();
-    auto oldBB = bfMachine.state->builder->GetInsertBlock();
-    auto oldInsertPoint = bfMachine.state->builder->GetInsertPoint();
+    CompilerState* state = bfMachine.state;
+    auto& builder = state->builder;
 
-    std::vector<llvm::Type*> argTypes(argumentNames.size(), bfMachine.state->builder->getInt8Ty());
+    state->pushVariableHandlerStack();
+    auto oldBB = builder->GetInsertBlock();
+    auto oldInsertPoint = builder->GetInsertPoint();
 
-    llvm::Function* function = bfMachine.state->declareBFFunction(functionName, argTypes);
+    std::vector<llvm::Type*> argTypes(argumentNames.size(), builder->getInt8Ty());
 
-    llvm::BasicBlock* functionBody = bfMachine.state->createBasicBlock(functionName);
-    bfMachine.state->builder->SetInsertPoint(functionBody);
+    llvm::Function* function = state->declareBFFunction(functionName, argTypes);
+
+    llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
+    builder->SetInsertPoint(functionBody);
 
     for (int i = 0; i < argumentNames.size(); ++i) { // todo use boost/zip?
-        auto argPtr = bfMachine.state->getVariableHandler().getVariablePtr(argumentNames[i]);
-        bfMachine.state->CreateStore(function->args().begin() + i, argPtr);
+        auto argPtr = state->getVariableHandler().getVariablePtr(argumentNames[i]);
+        state->CreateStore(function->args().begin() + i, argPtr);
     }
 
-    BFMachine localBFMachine = bfMachine.state->createBFMachine();
+    BFMachine localBFMachine = state->createBFMachine();
     body->generate(localBFMachine);
 
     Return defaultReturn;
     defaultReturn.generate(localBFMachine);
 
-    bfMachine.state->popVariableHandlerStack();
-    bfMachine.state->popFunctionStack();
-    bfMachine.state->builder->SetInsertPoint(oldBB, oldInsertPoint);
+    state->popVariableHandlerStack();
+    state->popFunctionStack();
+    builder->SetInsertPoint(oldBB, oldInsertPoint);
 }
 
 void Return::generate(BFMachine& bfMachine) const {
