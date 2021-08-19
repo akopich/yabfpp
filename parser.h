@@ -13,7 +13,7 @@ class Parser {
 private:
     std::map<std::string, int> functionName2argNumber;
 
-    Expr* parseToken(const CompilerState& state, Source::Iterator& i);
+    std::unique_ptr<Expr> parseToken(const CompilerState& state, Source::Iterator& i);
 
     template<typename P>
     std::string parseWithPredicate(Source::Iterator& i, P predicate) {
@@ -27,7 +27,7 @@ private:
 
     std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed);
 
-    Expr* parse(const CompilerState& state, Source::Iterator& i);
+    std::unique_ptr<Expr> parse(const CompilerState& state, Source::Iterator& i);
 
     std::string parseVariableName(Source::Iterator& i);
 

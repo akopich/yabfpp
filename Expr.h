@@ -86,25 +86,23 @@ class LoopExpr : public Expr {
 private:
     std::unique_ptr<Expr> body;
 public:
-    explicit LoopExpr(Expr* body);
+    explicit LoopExpr(std::unique_ptr<Expr> body);
 
     void generate(BFMachine& bfMachine) const override;
 };
 
 class ListExpr : public Expr {
 private:
-    std::vector<Expr*> v;
+    std::vector<std::shared_ptr<Expr>> v;
 
 public:
-    explicit ListExpr(std::vector<Expr*> v);
+    explicit ListExpr(std::vector<std::shared_ptr<Expr>> v);
 
     ListExpr(const ListExpr& e) = delete;
 
     ListExpr& operator=(const ListExpr& e) = delete;
 
     void generate(BFMachine& bfMachine) const override;
-
-    ~ListExpr() override;
 };
 
 class WriteToVariable : public Expr {

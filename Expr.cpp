@@ -42,18 +42,12 @@ void PrintExpr::generate(BFMachine& bfMachine) const {
 }
 
 void ListExpr::generate(BFMachine& bfMachine) const {
-    for (Expr* e : v) {
+    for (auto& e : v) {
         e->generate(bfMachine);
     }
 }
 
-ListExpr::~ListExpr() {
-    for (Expr* e : v) {
-        delete e;
-    }
-}
-
-ListExpr::ListExpr(std::vector<Expr*> v) : v(move(v)) {}
+ListExpr::ListExpr(std::vector<std::shared_ptr<Expr>> v) : v(move(v)) {}
 
 Expr::~Expr() = default;
 
@@ -77,7 +71,7 @@ void LoopExpr::generate(BFMachine& bfMachine) const {
     builder->SetInsertPoint(afterLoopBB);
 }
 
-LoopExpr::LoopExpr(Expr* bbody) : body(std::unique_ptr<Expr>(bbody)) {}
+LoopExpr::LoopExpr(std::unique_ptr<Expr> body) : body(std::move(body)) {}
 
 void WriteToVariable::generate(BFMachine& bfMachine) const {
     CompilerState* state = bfMachine.state;
@@ -146,7 +140,7 @@ void IfElse::generate(BFMachine& bfMachine) const {
 
 
 std::unique_ptr<Expr> getNoOpExpr() {
-    return std::make_unique<ListExpr>(std::vector<Expr*>());
+    return std::make_unique<ListExpr>(std::vector<std::shared_ptr<Expr>>());
 }
 
 BFFunctionDeclaration::BFFunctionDeclaration(std::string functionName,

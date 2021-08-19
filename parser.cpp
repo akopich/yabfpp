@@ -25,20 +25,20 @@ void checkBlockClosed(Source::Iterator& i, char expected) {
     ++i;
 }
 
-Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
+std::unique_ptr<Expr> Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
         case '\\':
-            return new Return();
+            return std::make_unique<Return>();
         case '@': {
             std::string functionName = parseVariableName(i);
             std::vector<std::string> argNames = parseFunctionArgumentList(i);
             functionName2argNumber[functionName] = argNames.size();
             checkBlockClosed(i, '{');
-            Expr* body = parse(state, i);
+            auto body = parse(state, i);
             checkBlockClosed(i, '}');
-            return new BFFunctionDeclaration(functionName, argNames, std::unique_ptr<Expr>(body));
+            return std::make_unique<BFFunctionDeclaration>(functionName, argNames, move(body));
         }
         case '$': {
             std::string functionName = parseVariableName(i);
@@ -53,7 +53,7 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
                                            " arguments, " +
                                            std::to_string(argExprs.size()) + " supplied");
             }
-            return new BFFunctionCall(functionName, argExprs);
+            return std::make_unique<BFFunctionCall>(functionName, argExprs);
         }
         case '{': {
             auto ifExpr = parse(state, i);
@@ -62,15 +62,15 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
                 i++;
                 auto elseExpr = parse(state, i);
                 checkBlockClosed(i, '}');
-                return new IfElse(std::unique_ptr<Expr>(ifExpr), std::unique_ptr<Expr>(elseExpr));
+                return std::make_unique<IfElse>(move(ifExpr), move(elseExpr));
             }
 
-            return new IfElse(std::unique_ptr<Expr>(ifExpr), getNoOpExpr());
+            return std::make_unique<IfElse>(move(ifExpr), getNoOpExpr());
         }
         case '^':
-            return new WriteToVariable(parseVariableName(i));
+            return std::make_unique<WriteToVariable>(parseVariableName(i));
         case '_': {
-            return new AssignExpressionValueToTheCurrentCell(parseInt8Expr(i, false));
+            return std::make_unique<AssignExpressionValueToTheCurrentCell>(parseInt8Expr(i, false));
         }
         case '+':
         case '-': {
@@ -78,26 +78,26 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
             if (c == '-') {
                 add = std::make_unique<MinusInt8Expr>(move(add));
             }
-            return new AddExpr(move(add));
+            return std::make_unique<AddExpr>(move(add));
         }
         case '.':
-            return new PrintExpr();
+            return std::make_unique<PrintExpr>();
         case ',':
-            return new ReadExpr();
+            return std::make_unique<ReadExpr>();
         case '*':
-            return new PrintIntExpr();
+            return std::make_unique<PrintIntExpr>();
         case '<':
         case '>': {
             auto step = parseInt8Expr(i, true);
             if (c == '<') {
                 step = std::make_unique<MinusInt8Expr>(move(step));
             }
-            return new MovePtrExpr(move(step));
+            return std::make_unique<MovePtrExpr>(move(step));
         }
         case '[': {
-            auto loop = new LoopExpr(parse(state, i));
+            auto body = parse(state, i);
             checkBlockClosed(i, ']');
-            return loop;
+            return std::make_unique<LoopExpr>(move(body));;
         }
         default:
             throw SyntaxErrorException(i, "Unexpected symbol.");
@@ -147,12 +147,12 @@ std::string Parser::parseIntLiteral(Source::Iterator& i) {
     return parseWithPredicate(i, isdigit);
 }
 
-Expr* Parser::parse(const CompilerState& state, Source::Iterator& i) {
-    std::vector<Expr*> v;
+std::unique_ptr<Expr> Parser::parse(const CompilerState& state, Source::Iterator& i) {
+    std::vector<std::shared_ptr<Expr>> v;
     while (!i.isEnd() && *i != ']' && *i != '}') {
-        v.push_back(parseToken(state, i));
+        v.push_back(move(parseToken(state, i)));
     }
-    return new ListExpr(v);
+    return std::make_unique<ListExpr>(v);
 }
 
 std::unique_ptr<Int8Expr> Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
