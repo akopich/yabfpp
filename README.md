@@ -8,6 +8,7 @@ yabfpp (Yet Another BF++) is a cross-platform compiler of the new dialect BF++ o
 
 # BF++ features
 BF++ extends BF in a number of ways
+- functions. See below. 
 - the tape size is not limited to 30,000 cells and is virtually unlimited.
 - each cell is a signed 8-bit integer.
 - if/else construction. `{ifblock}{elseblock}` will run only `ifblock` if the current cell stores a non-zero value and `elseblock` will be run otherwise.
@@ -42,6 +43,41 @@ _last+lastbutone  ; calculate the next element
 <
 ]
 ```
+... but I promised you functions, right? 
+
+## Functions
+In BF++ every function takes an arbitrary (yet, known in compile-time, variadic functions are not supported) number of signed 8-bit integers and returns a single signed 8-bit integer. On every call of a function a new tape is created for the function to operate on it. Each function has its own variable scope. To return the value stored in the current cell from the function, use `\`. Multiple returns are supported. If control flow reaches the end of the function, the value stored in the current cell is returned. The returned value is written into caller's tape, into caller's current cell. 
+
+A function can be declared as 
+```
+@functionname(argone, argtwo, argthree) {[functionbody]}
+```
+and called as 
+```
+$functionname(argone, argtwo, argthree)
+```
+The provided arguments can be either variables or integer literals. 
+
+### Recursive calculation of Fibonacci numbers.
+
+```
+@fib(n) {_n{-                   ; write n into the current cell and check if it's zero. If not, decrement it
+              {^prev            ; check if it's 1 (if the current cell is 0) . If not, store n-1 in prev variable
+                $fib(prev)      ; call the function fib recursively for n-1
+                ^fibprev        ; store the result
+                _prev           ; get n-1 into the current cell
+                -               ; decrement it
+                ^prevprev       ; store n-2 into prevprev
+                $fib(prevprev)  ; another recursive call for, now for n-2
+                +fibprev}       ; add fib(n-1) to the result
+             {_1}}              ; return 1 if n == 1
+          {_0}                  ; return 0 if n == 0
+         }                      ; no need to return explicitly, but you are free to add \.
+
+_12^x$fib(x)*                   ; store 12 into a variable named x and call fib. Print the result afterwards.
+$fib(12)*                       ; or you can just call the function with an integer literal. 
+```
+
 
 
 # Building the compiler
