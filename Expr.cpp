@@ -171,13 +171,24 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     BFMachine localBFMachine = bfMachine.state->createBFMachine();
     body->generate(localBFMachine);
 
+    Return defaultReturn;
+    defaultReturn.generate(localBFMachine);
+
     bfMachine.state->popVariableHandlerStack();
     bfMachine.state->popFunctionStack();
     bfMachine.state->builder->SetInsertPoint(oldBB, oldInsertPoint);
 }
 
 void Return::generate(BFMachine& bfMachine) const {
-    bfMachine.state->builder->CreateRet(bfMachine.getCurrentChar());
+    auto& builder = bfMachine.state->builder;
+    builder->CreateRet(bfMachine.getCurrentChar());
+    builder->SetInsertPoint(bfMachine.state->createBasicBlock("dead code"));
+
+    auto oldBB = builder->GetInsertBlock();
+    auto oldInsertPoint = builder->GetInsertPoint();
+
+    builder->CreateRet(bfMachine.state->getConstChar(0));
+    builder->SetInsertPoint(oldBB, oldInsertPoint);
 }
 
 BFFunctionCall::BFFunctionCall(std::string functionName,

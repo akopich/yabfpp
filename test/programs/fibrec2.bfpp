@@ -5,7 +5,7 @@
               -
               ^prevprev
               $fib(prevprev)
-              +fibprev}{_1}}{_0}}
+              +fibprev\}{_1\}}{_0\}}
 
 _12^x$fib(x)*
 $fib(12)*
