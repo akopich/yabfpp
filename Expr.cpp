@@ -182,13 +182,13 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
 void Return::generate(BFMachine& bfMachine) const {
     auto& builder = bfMachine.state->builder;
     builder->CreateRet(bfMachine.getCurrentChar());
+
+    // This is a hack. Everything added to the block after the ret instruction,
+    // is considered to be a new unnamed block, which is number and the numbering is shared between
+    // the instructions and the unnamed blocks. Hence, we make the block named. And it is unreachable.
     builder->SetInsertPoint(bfMachine.state->createBasicBlock("dead code"));
-
-    auto oldBB = builder->GetInsertBlock();
-    auto oldInsertPoint = builder->GetInsertPoint();
-
+    // every block needs to have a terminating instruction. 0 is arbitrary.
     builder->CreateRet(bfMachine.state->getConstChar(0));
-    builder->SetInsertPoint(oldBB, oldInsertPoint);
 }
 
 BFFunctionCall::BFFunctionCall(std::string functionName,
