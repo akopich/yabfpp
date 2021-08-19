@@ -49,8 +49,6 @@ class VariableHandler;
 
 class CompilerState : public ConstantHelper {
 private:
-    const int CALL_STACK_SIZE = 100;
-
     void generateEntryPoint();
 
     void return0FromMain() const;
@@ -69,11 +67,12 @@ private:
     void generateReadCharFunction();
 
 protected:
-    llvm::LLVMContext* getContext() const override;
+    [[nodiscard]] llvm::LLVMContext* getContext() const override;
 
 public:
-    friend CompilerState
-    initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
+    friend CompilerState initCompilerState(const std::string& name,
+                                           const std::string& targetTriple,
+                                           int tapeSize);
 
     CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                   std::unique_ptr<llvm::Module> module,
@@ -82,7 +81,7 @@ public:
                   std::unique_ptr<PlatformDependent> platformDependent,
                   int initialTapeSize);
 
-    llvm::Function* getCurrentFunction() const;
+    [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
     llvm::Function* declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args);
 
@@ -120,12 +119,12 @@ public:
 
     void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const;
 
-    llvm::Value* generateCallReadCharFunction() const;
+    [[nodiscard]] llvm::Value* generateCallReadCharFunction() const;
 
     llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
 };
 
-CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, int tapeSize);
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

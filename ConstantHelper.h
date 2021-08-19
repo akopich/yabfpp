@@ -14,7 +14,7 @@ private:
     [[nodiscard]] llvm::Value* getConstInt(const llvm::APInt& v) const;
 
 protected:
-    virtual llvm::LLVMContext* getContext() const = 0;
+    [[nodiscard]] virtual llvm::LLVMContext* getContext() const = 0;
 
 public:
     [[nodiscard]] llvm::Value* getConstInt(int i) const;

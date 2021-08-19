@@ -117,7 +117,7 @@ void CompilerState::generateReadCharFunction() {
     builder->CreateRet(readI8);
 }
 
-llvm::Value* CompilerState::generateCallReadCharFunction() const {
+[[nodiscard]] llvm::Value* CompilerState::generateCallReadCharFunction() const {
     return builder->CreateCall(module->getFunction("readChar"), {});
 }
 
@@ -180,7 +180,7 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     return state;
 }
 
-llvm::LLVMContext* CompilerState::getContext() const {
+[[nodiscard]] llvm::LLVMContext* CompilerState::getContext() const {
     return context.get();
 }
 
@@ -200,7 +200,7 @@ void CompilerState::popVariableHandlerStack() {
     variableHandlerStack.pop();
 }
 
-llvm::Function* CompilerState::getCurrentFunction() const {
+[[nodiscard]] llvm::Function* CompilerState::getCurrentFunction() const {
     return functionStack.top();
 }
 
