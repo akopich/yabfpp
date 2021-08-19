@@ -158,12 +158,9 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
 
     std::vector<llvm::Type*> argTypes(argumentNames.size(), bfMachine.state->builder->getInt8Ty());
 
-    llvm::Function* function = bfMachine.state->clib->declareFunction(argTypes,
-                                                                      bfMachine.state->builder->getInt8Ty(),
-                                                                      false,
-                                                                      functionName);
+    llvm::Function* function = bfMachine.state->declareBFFunction(functionName, argTypes);
 
-    llvm::BasicBlock* functionBody = bfMachine.state->createBasicBlock(functionName, function);
+    llvm::BasicBlock* functionBody = bfMachine.state->createBasicBlock(functionName);
     bfMachine.state->builder->SetInsertPoint(functionBody);
 
     for (int i = 0; i < argumentNames.size(); ++i) { // todo use boost/zip?
@@ -175,6 +172,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     body->generate(localBFMachine);
 
     bfMachine.state->popVariableHandlerStack();
+    bfMachine.state->popFunctionStack();
     bfMachine.state->builder->SetInsertPoint(oldBB, oldInsertPoint);
 }
 

@@ -6,10 +6,11 @@
 
 
 void CompilerState::generateEntryPoint() {
-    main = clib->declareFunction({},
-                                 builder->getInt32Ty(),
-                                 false,
-                                 "main");
+    auto main = clib->declareFunction({},
+                                      builder->getInt32Ty(),
+                                      false,
+                                      "main");
+    functionStack.push(main);
     llvm::BasicBlock* entry = llvm::BasicBlock::Create(*context, "main", main);
     builder->SetInsertPoint(entry);
 }
@@ -143,7 +144,7 @@ llvm::Value* CompilerState::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const 
 }
 
 llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s) const {
-    return createBasicBlock(s, main);
+    return createBasicBlock(s, getCurrentFunction());
 }
 
 void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath) const {
@@ -198,3 +199,21 @@ void CompilerState::pushVariableHandlerStack() {
 void CompilerState::popVariableHandlerStack() {
     variableHandlerStack.pop();
 }
+
+llvm::Function* CompilerState::getCurrentFunction() const {
+    return functionStack.top();
+}
+
+void CompilerState::popFunctionStack() {
+    functionStack.pop();
+}
+
+llvm::Function* CompilerState::declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args) {
+    auto f = clib->declareFunction(args,
+                                   builder->getInt8Ty(),
+                                   false,
+                                   name);
+    functionStack.push(f);
+    return f;
+}
+

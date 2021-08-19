@@ -61,7 +61,7 @@ private:
 
     const int initialTapeSize;
 
-    llvm::Function* main{};
+    std::stack<llvm::Function*> functionStack;
 
 
     void generateTapeDoublingFunction();
@@ -81,6 +81,12 @@ public:
                   std::unique_ptr<CLibHandler> clib,
                   std::unique_ptr<PlatformDependent> platformDependent,
                   int initialTapeSize);
+
+    llvm::Function* getCurrentFunction() const;
+
+    llvm::Function* declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args);
+
+    void popFunctionStack();
 
     std::unique_ptr<llvm::Module> module;
 
