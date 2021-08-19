@@ -12,22 +12,12 @@
 
 
 #include "Expr.h"
+#include "parser.h"
 #include "Source.h"
 #include "SyntaxErrorException.h"
 
-std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed);
 
-Expr* parse(const CompilerState& state, Source::Iterator& i);
-
-std::string parseVariableName(Source::Iterator& i);
-
-std::string parseIntLiteral(Source::Iterator& i);
-
-std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i);
-
-std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Iterator& i);
-
-Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
+Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
@@ -36,6 +26,7 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         case '@': {
             std::string functionName = parseVariableName(i);
             std::vector<std::string> argNames = parseFunctionArgumentList(i);
+            functionName2argNumber[functionName] = argNames.size();
             ++i;
             Expr* body = parse(state, i);
             ++i;
@@ -43,7 +34,17 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         }
         case '$': {
             std::string functionName = parseVariableName(i);
+            auto functionIt = functionName2argNumber.find(functionName);
+            if (functionIt == functionName2argNumber.end()) {
+                throw SyntaxErrorException(i, "Function " + functionName + " is not defined");
+            }
             auto argExprs = parseCallFunctionArgumentList(i);
+            if (argExprs.size() != functionIt->second) {
+                throw SyntaxErrorException(i,
+                                           "Function " + functionName + " takes " + std::to_string(functionIt->second) +
+                                           " arguments, " +
+                                           std::to_string(argExprs.size()) + " supplied");
+            }
             return new BFFunctionCall(functionName, argExprs);
         }
         case '{': {
@@ -95,7 +96,7 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
     }
 }
 
-std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Iterator& i) {
+std::vector<std::shared_ptr<Int8Expr>> Parser::parseCallFunctionArgumentList(Source::Iterator& i) {
     if (*i != '(')
         throw SyntaxErrorException(i, "opening bracket expected");
     ++i;
@@ -113,7 +114,7 @@ std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Ite
     return arguments;
 }
 
-std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i) {
+std::vector<std::string> Parser::parseFunctionArgumentList(Source::Iterator& i) {
     if (*i != '(')
         throw SyntaxErrorException(i, "opening bracket expected");
     ++i;
@@ -130,26 +131,15 @@ std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i) {
     return argNames;
 }
 
-
-template<typename P>
-std::string parseWithPredicate(Source::Iterator& i, P predicate) {
-    std::string name;
-    while (!i.isEnd() && predicate(*i)) {
-        name += *i;
-        i++;
-    }
-    return name;
-}
-
-std::string parseVariableName(Source::Iterator& i) {
+std::string Parser::parseVariableName(Source::Iterator& i) {
     return parseWithPredicate(i, isalpha);
 }
 
-std::string parseIntLiteral(Source::Iterator& i) {
+std::string Parser::parseIntLiteral(Source::Iterator& i) {
     return parseWithPredicate(i, isdigit);
 }
 
-Expr* parse(const CompilerState& state, Source::Iterator& i) {
+Expr* Parser::parse(const CompilerState& state, Source::Iterator& i) {
     std::vector<Expr*> v;
     while (!i.isEnd() && *i != ']' && *i != '}') {
         v.push_back(parseToken(state, i));
@@ -157,7 +147,7 @@ Expr* parse(const CompilerState& state, Source::Iterator& i) {
     return new ListExpr(v);
 }
 
-std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
+std::unique_ptr<Int8Expr> Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
     std::string varname = parseVariableName(i);
     if (!varname.empty())
         return std::make_unique<VariableInt8Expr>(varname);
@@ -172,7 +162,8 @@ std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllo
     throw SyntaxErrorException(i, "a variable name or an integer literal is expected");
 }
 
-std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src) {
+std::unique_ptr<Expr> Parser::parse(const CompilerState& state, const Source& src) {
+    functionName2argNumber = std::map<std::string, int>();
     auto it = src.begin();
     return std::unique_ptr<Expr>(parse(state, it));
 }

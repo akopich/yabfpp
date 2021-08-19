@@ -71,7 +71,8 @@ int main(int ac, char* av[]) {
     auto state = initCompilerState(inputPath, targetTriple, initialTapeSize);
     state.pushVariableHandlerStack();
     BFMachine bfMachine = state.createBFMachine();
-    auto expr = parse(state, src);
+    Parser parser;
+    auto expr = parser.parse(state, src);
     expr->generate(bfMachine);
     state.finalizeAndPrintIRtoFile(outPath);
     return 0;
