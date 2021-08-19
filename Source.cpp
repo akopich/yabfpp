@@ -71,10 +71,12 @@ Source getSource(const std::vector<std::string>& lines, bool legacyMode) {
 }
 
 int Source::Iterator::getLine() const {
+    if (isEnd()) return source->lines.size() + 1;
     return std::distance(source->lines.begin(), lineIt) + 1;
 }
 
 int Source::Iterator::getLinePosition() const {
+    if (isEnd()) return source->lines.back().size() + 1;
     return std::distance(lineIt->begin(), charIt) + 1;
 }
 

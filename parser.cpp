@@ -17,6 +17,14 @@
 #include "SyntaxErrorException.h"
 
 
+void checkBlockClosed(Source::Iterator& i, char expected) {
+    if (i.isEnd() || *i != expected) {
+        std::string charAsString(1, expected);
+        throw SyntaxErrorException(i, charAsString + " is expected.");
+    }
+    ++i;
+}
+
 Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
@@ -27,9 +35,9 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
             std::string functionName = parseVariableName(i);
             std::vector<std::string> argNames = parseFunctionArgumentList(i);
             functionName2argNumber[functionName] = argNames.size();
-            ++i;
+            checkBlockClosed(i, '{');
             Expr* body = parse(state, i);
-            ++i;
+            checkBlockClosed(i, '}');
             return new BFFunctionDeclaration(functionName, argNames, std::unique_ptr<Expr>(body));
         }
         case '$': {
@@ -49,11 +57,11 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
         }
         case '{': {
             auto ifExpr = parse(state, i);
-            i++;
+            checkBlockClosed(i, '}');
             if (*i == '{') {
                 i++;
                 auto elseExpr = parse(state, i);
-                i++;
+                checkBlockClosed(i, '}');
                 return new IfElse(std::unique_ptr<Expr>(ifExpr), std::unique_ptr<Expr>(elseExpr));
             }
 
@@ -88,7 +96,7 @@ Expr* Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
         }
         case '[': {
             auto loop = new LoopExpr(parse(state, i));
-            i++;
+            checkBlockClosed(i, ']');
             return loop;
         }
         default:
