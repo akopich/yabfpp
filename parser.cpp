@@ -15,7 +15,7 @@
 #include "Source.h"
 #include "SyntaxErrorException.h"
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaultOneAllowed);
+std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed);
 
 Expr* parse(const CompilerState& state, Source::Iterator& i);
 
@@ -24,6 +24,8 @@ std::string parseVariableName(Source::Iterator& i);
 std::string parseIntLiteral(Source::Iterator& i);
 
 std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i);
+
+std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Iterator& i);
 
 Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
@@ -41,11 +43,7 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         }
         case '$': {
             std::string functionName = parseVariableName(i);
-            std::vector<std::string> argNames = parseFunctionArgumentList(i);
-            std::vector<std::shared_ptr<Int8Expr>> argExprs;
-            std::transform(argNames.begin(), argNames.end(), std::back_inserter(argExprs), [](const auto& name) {
-                return std::make_shared<VariableInt8Expr>(name);
-            });
+            auto argExprs = parseCallFunctionArgumentList(i);
             return new BFFunctionCall(functionName, argExprs);
         }
         case '{': {
@@ -63,11 +61,11 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         case '^':
             return new WriteToVariable(parseVariableName(i));
         case '_': {
-            return new AssignExpressionValueToTheCurrentCell(parseTrailingVariable(i, false));
+            return new AssignExpressionValueToTheCurrentCell(parseInt8Expr(i, false));
         }
         case '+':
         case '-': {
-            auto add = parseTrailingVariable(i, true);
+            auto add = parseInt8Expr(i, true);
             if (c == '-') {
                 add = std::make_unique<MinusInt8Expr>(move(add));
             }
@@ -81,7 +79,7 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
             return new PrintIntExpr();
         case '<':
         case '>': {
-            auto step = parseTrailingVariable(i, true);
+            auto step = parseInt8Expr(i, true);
             if (c == '<') {
                 step = std::make_unique<MinusInt8Expr>(move(step));
             }
@@ -95,6 +93,24 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         default:
             throw SyntaxErrorException(i, "Unexpected symbol.");
     }
+}
+
+std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Iterator& i) {
+    if (*i != '(')
+        throw SyntaxErrorException(i, "opening bracket expected");
+    ++i;
+    std::vector<std::shared_ptr<Int8Expr>> arguments;
+    while (*i != ')') {
+        auto argument = parseInt8Expr(i, false);
+        arguments.push_back(move(argument));
+        if (*i != ',' && *i != ')') {
+            throw SyntaxErrorException(i, "a comma, a closing bracket, variable name or an integer literal");
+        }
+        if (*i == ',')
+            i++;
+    }
+    ++i;
+    return arguments;
 }
 
 std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i) {
@@ -113,6 +129,7 @@ std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i) {
     ++i;
     return argNames;
 }
+
 
 template<typename P>
 std::string parseWithPredicate(Source::Iterator& i, P predicate) {
@@ -140,7 +157,7 @@ Expr* parse(const CompilerState& state, Source::Iterator& i) {
     return new ListExpr(v);
 }
 
-std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaultOneAllowed) {
+std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
     std::string varname = parseVariableName(i);
     if (!varname.empty())
         return std::make_unique<VariableInt8Expr>(varname);
@@ -152,7 +169,7 @@ std::unique_ptr<Int8Expr> parseTrailingVariable(Source::Iterator& i, bool defaul
     if (defaultOneAllowed)
         return std::make_unique<ConstInt8Expr>(1);
 
-    throw SyntaxErrorException(i, "_ should be followed by a variable name or by an integer literal");
+    throw SyntaxErrorException(i, "a variable name or an integer literal is expected");
 }
 
 std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src) {
