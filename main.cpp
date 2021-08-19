@@ -68,10 +68,11 @@ int main(int ac, char* av[]) {
     }
     Source src = getSource(program.value(), legacyMode);
 
-    auto state = initCompilerState(inputPath, targetTriple);
-    state.init(initialTapeSize);
+    auto state = initCompilerState(inputPath, targetTriple, initialTapeSize);
+    state.pushVariableHandlerStack();
+    BFMachine bfMachine = state.createBFMachine();
     auto expr = parse(state, src);
-    expr->generate(state);
+    expr->generate(bfMachine);
     state.finalizeAndPrintIRtoFile(outPath);
     return 0;
 }

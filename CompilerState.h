@@ -40,15 +40,12 @@
 #include "PlatformDependent.h"
 #include "ConstantHelper.h"
 #include "VariableHandler.h"
-#include "CallStack.h"
 
 class BFMachine;
 
 class CLibHandler;
 
 class VariableHandler;
-
-class CallStack;
 
 class CompilerState : public ConstantHelper {
 private:
@@ -59,11 +56,10 @@ private:
     void return0FromMain() const;
 
     std::unique_ptr<llvm::LLVMContext> context;
-    std::unique_ptr<llvm::Module> module;
     std::unique_ptr<PlatformDependent> platformDependent;
-    std::unique_ptr<CallStack> callStack;
-    std::unique_ptr<VariableHandler> variableHandler;
+    std::stack<std::shared_ptr<VariableHandler>> variableHandlerStack;
 
+    const int initialTapeSize;
 
     llvm::Function* main{};
 
@@ -76,17 +72,23 @@ protected:
     llvm::LLVMContext* getContext() const override;
 
 public:
-    friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
+    friend CompilerState
+    initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
 
     CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                   std::unique_ptr<llvm::Module> module,
                   std::unique_ptr<llvm::IRBuilder<>> builder,
                   std::unique_ptr<CLibHandler> clib,
-                  std::unique_ptr<PlatformDependent> platformDependent);
+                  std::unique_ptr<PlatformDependent> platformDependent,
+                  int initialTapeSize);
 
-    BFMachine getBFMachine();
+    std::unique_ptr<llvm::Module> module;
 
     VariableHandler& getVariableHandler();
+
+    void pushVariableHandlerStack();
+
+    void popVariableHandlerStack();
 
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
@@ -96,7 +98,7 @@ public:
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
-    void init(int tapeSize);
+    BFMachine createBFMachine();
 
     void finalizeAndPrintIRtoFile(const std::string& outPath) const;
 
@@ -117,7 +119,7 @@ public:
     llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
 };
 
-CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

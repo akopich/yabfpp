@@ -10,14 +10,14 @@
 
 class Expr {
 public:
-    virtual void generate(CompilerState& state) const = 0;
+    virtual void generate(BFMachine& bfMachine) const = 0;
 
     virtual ~Expr();
 };
 
 class Int8Expr {
 public:
-    virtual llvm::Value* generate(CompilerState& state) const = 0;
+    virtual llvm::Value* generate(BFMachine& bfMachine) const = 0;
 
     virtual ~Int8Expr() = default;
 };
@@ -27,7 +27,7 @@ class MinusInt8Expr : public Int8Expr {
 public:
     explicit MinusInt8Expr(std::unique_ptr<Int8Expr> value);
 
-    llvm::Value* generate(CompilerState& state) const override;
+    llvm::Value* generate(BFMachine& bfMachine) const override;
 };
 
 class VariableInt8Expr : public Int8Expr {
@@ -36,7 +36,7 @@ private:
 public:
     explicit VariableInt8Expr(std::string name);
 
-    llvm::Value* generate(CompilerState& state) const override;
+    llvm::Value* generate(BFMachine& bfMachine) const override;
 };
 
 class ConstInt8Expr : public Int8Expr {
@@ -45,7 +45,7 @@ private:
 public:
     explicit ConstInt8Expr(char value);
 
-    llvm::Value* generate(CompilerState& state) const override;
+    llvm::Value* generate(BFMachine& bfMachine) const override;
 };
 
 class MovePtrExpr : public Expr {
@@ -54,7 +54,7 @@ private:
 public:
     explicit MovePtrExpr(std::unique_ptr<Int8Expr> steps);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class AddExpr : public Expr {
@@ -63,22 +63,22 @@ private:
 public:
     explicit AddExpr(std::unique_ptr<Int8Expr> add);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class ReadExpr : public Expr {
 public:
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class PrintExpr : public Expr {
 public:
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class PrintIntExpr : public Expr {
 public:
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 
@@ -88,7 +88,7 @@ private:
 public:
     explicit LoopExpr(Expr* body);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class ListExpr : public Expr {
@@ -102,7 +102,7 @@ public:
 
     ListExpr& operator=(const ListExpr& e) = delete;
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 
     ~ListExpr() override;
 };
@@ -113,7 +113,7 @@ private:
 public:
     explicit WriteToVariable(std::string name);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 class AssignExpressionValueToTheCurrentCell : public Expr {
@@ -122,7 +122,7 @@ private:
 public:
     explicit AssignExpressionValueToTheCurrentCell(std::unique_ptr<Int8Expr> name);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 
@@ -133,10 +133,39 @@ private:
 public:
     IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr);
 
-    void generate(CompilerState& state) const override;
+    void generate(BFMachine& bfMachine) const override;
 };
 
 
 std::unique_ptr<Expr> getNoOpExpr();
+
+
+class BFFunctionDeclaration : public Expr {
+private:
+    std::string functionName;
+    std::vector<std::string> argumentNames;
+    std::unique_ptr<Expr> body;
+public:
+    BFFunctionDeclaration(std::string functionName,
+                          std::vector<std::string> variableNames,
+                          std::unique_ptr<Expr> body);
+
+    void generate(BFMachine& bfMachine) const override;
+};
+
+class BFFunctionCall : public Expr {
+private:
+    std::string functionName;
+    std::vector<std::shared_ptr<Int8Expr>> arguments;
+public:
+    BFFunctionCall(std::string functionName, std::vector<std::shared_ptr<Int8Expr>> arguments);
+
+    void generate(BFMachine& bfMachine) const override;
+};
+
+class Return : public Expr {
+public:
+    void generate(BFMachine& bfMachine) const override;
+};
 
 #endif //YABF_EXPR_H

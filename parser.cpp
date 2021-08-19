@@ -23,11 +23,31 @@ std::string parseVariableName(Source::Iterator& i);
 
 std::string parseIntLiteral(Source::Iterator& i);
 
+std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i);
 
 Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
+        case '\\':
+            return new Return();
+        case '@': {
+            std::string functionName = parseVariableName(i);
+            std::vector<std::string> argNames = parseFunctionArgumentList(i);
+            ++i;
+            Expr* body = parse(state, i);
+            ++i;
+            return new BFFunctionDeclaration(functionName, argNames, std::unique_ptr<Expr>(body));
+        }
+        case '$': {
+            std::string functionName = parseVariableName(i);
+            std::vector<std::string> argNames = parseFunctionArgumentList(i);
+            std::vector<std::shared_ptr<Int8Expr>> argExprs;
+            std::transform(argNames.begin(), argNames.end(), std::back_inserter(argExprs), [](const auto& name) {
+                return std::make_shared<VariableInt8Expr>(name);
+            });
+            return new BFFunctionCall(functionName, argExprs);
+        }
         case '{': {
             auto ifExpr = parse(state, i);
             i++;
@@ -75,6 +95,23 @@ Expr* parseToken(const CompilerState& state, Source::Iterator& i) {
         default:
             throw SyntaxErrorException(i, "Unexpected symbol.");
     }
+}
+
+std::vector<std::string> parseFunctionArgumentList(Source::Iterator& i) {
+    if (*i != '(')
+        throw SyntaxErrorException(i, "opening bracket expected");
+    ++i;
+    std::vector<std::string> argNames;
+    while (*i != ')') {
+        argNames.push_back(parseVariableName(i));
+        if (*i != ',' && *i != ')') {
+            throw SyntaxErrorException(i, "a comma, a closing bracket or an alphabetic character expected");
+        }
+        if (*i == ',')
+            i++;
+    }
+    ++i;
+    return argNames;
 }
 
 template<typename P>

@@ -2,22 +2,7 @@
 // Created by valerij on 7/30/21.
 //
 
-#include <vector>
-#include <memory>
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/ADT/APFloat.h"
-#include <iostream>
 #include "CompilerState.h"
-#include "BFMachine.h"
 
 
 void CompilerState::generateEntryPoint() {
@@ -44,9 +29,14 @@ void CompilerState::return0FromMain() const {
     builder->CreateRet(getConstInt(0));
 }
 
-void CompilerState::init(const int tapeSize) {
-    callStack = initCallStack(this, tapeSize, CALL_STACK_SIZE);
-    variableHandler = std::make_unique<VariableHandler>(this);
+BFMachine CompilerState::createBFMachine() {
+    auto tape = clib->generateCallCalloc(getConstInt(initialTapeSize));
+
+    auto pointer = allocateAndInitialize(builder->getInt32Ty(), getConstInt(0));
+    auto tapeSizePtr = allocateAndInitialize(builder->getInt32Ty(), getConstInt(initialTapeSize));
+    auto tapePtr = allocateAndInitialize(builder->getInt8PtrTy(), tape);
+
+    return {tapePtr, pointer, tapeSizePtr, this};
 }
 
 llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Function* function) const {
@@ -134,12 +124,14 @@ CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                              std::unique_ptr<llvm::Module> module,
                              std::unique_ptr<llvm::IRBuilder<>> builder,
                              std::unique_ptr<CLibHandler> clib,
-                             std::unique_ptr<PlatformDependent> platformDependent)
+                             std::unique_ptr<PlatformDependent> platformDependent,
+                             int initialTapeSize)
         : context(move(context)),
           module(move(module)),
           builder(move(builder)),
           clib(move(clib)),
-          platformDependent(move(platformDependent)) {}
+          platformDependent(move(platformDependent)),
+          initialTapeSize(initialTapeSize) {}
 
 llvm::Value* CompilerState::CreateLoad(llvm::Value* ptr) const {
     return builder->CreateLoad(ptr);
@@ -168,7 +160,7 @@ llvm::Value* CompilerState::allocateAndInitialize(llvm::Type* type, llvm::Value*
     return pointer;
 }
 
-CompilerState initCompilerState(const std::string& name, const std::string& targetTriple) {
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize) {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
     std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(name, *context);
@@ -178,7 +170,7 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
     auto platformDependent = getPlatformDependent(targetTriple);
-    CompilerState state(move(context), move(module), move(builder), move(clib), move(platformDependent));
+    CompilerState state(move(context), move(module), move(builder), move(clib), move(platformDependent), tapeSize);
 
     state.generateReadCharFunction();
     state.generateTapeDoublingFunction();
@@ -191,14 +183,18 @@ llvm::LLVMContext* CompilerState::getContext() const {
     return context.get();
 }
 
-BFMachine CompilerState::getBFMachine() {
-    return callStack->getBFMachine();
-}
-
 VariableHandler& CompilerState::getVariableHandler() {
-    return *variableHandler;
+    return *variableHandlerStack.top();
 }
 
 llvm::Value* CompilerState::CreateStore(llvm::Value* value, llvm::Value* ptr) const {
     return builder->CreateStore(value, ptr);
+}
+
+void CompilerState::pushVariableHandlerStack() {
+    variableHandlerStack.emplace(std::make_shared<VariableHandler>(this));
+}
+
+void CompilerState::popVariableHandlerStack() {
+    variableHandlerStack.pop();
 }

@@ -30,7 +30,7 @@ public:
     llvm::Value* tapePtr;
     llvm::Value* pointer;
     llvm::Value* tapeSizePtr;
-    const CompilerState* state;
+    CompilerState* const state;
 
 
     BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state);

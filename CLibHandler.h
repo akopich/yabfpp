@@ -37,7 +37,8 @@ protected:
     llvm::LLVMContext* getContext() const override;
 
 public:
-    friend CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
+    friend CompilerState
+    initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
 
     CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder);
 
