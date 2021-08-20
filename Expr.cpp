@@ -6,6 +6,9 @@
 
 #include <utility>
 
+
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 void MovePtrExpr::generate(BFMachine& bfMachine) const {
     llvm::Value* index = bfMachine.getIndex();
     llvm::Value* stepValueI8 = steps->generate(bfMachine);
@@ -175,6 +178,8 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     Return defaultReturn;
     defaultReturn.generate(localBFMachine);
 
+    llvm::EliminateUnreachableBlocks(*function);
+
     state->popVariableHandlerStack();
     state->popFunctionStack();
     builder->SetInsertPoint(oldBB, oldInsertPoint);
@@ -189,9 +194,10 @@ void Return::generate(BFMachine& bfMachine) const {
 
     builder->CreateRet(valueToReturn);
 
-    // This is a hack. Everything added to the block after the ret instruction,
-    // is considered to be a new unnamed block, which is number and the numbering is shared between
+    // This is a hack. Everything added to the block after the ret instruction
+    // is considered to be a new unnamed block, which is numbered and the numbering is shared between
     // the instructions and the unnamed blocks. Hence, we make the block named. And it is unreachable.
+    // Ultimately, it will be eliminated, as BFFunctionDeclaration calls llvm::EliminateUnreachableBlocks.
     builder->SetInsertPoint(state->createBasicBlock("dead code"));
     // every block needs to have a terminating instruction. 0 is arbitrary.
     builder->CreateRet(state->getConstChar(0));
