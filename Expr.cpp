@@ -5,8 +5,8 @@
 #include "Expr.h"
 
 #include <utility>
-
-
+#include <boost/fusion/algorithm/transformation/zip.hpp>
+#include <boost/fusion/include/zip.hpp>
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 void MovePtrExpr::generate(BFMachine& bfMachine) const {
@@ -167,9 +167,9 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
     builder->SetInsertPoint(functionBody);
 
-    for (int i = 0; i < argumentNames.size(); ++i) { // todo use boost/zip?
-        auto argPtr = state->getVariableHandler().getVariablePtr(argumentNames[i]);
-        state->CreateStore(function->args().begin() + i, argPtr);
+    for (auto[argValue, argName] : zip(function->args(), argumentNames)) {
+        auto argPtr = state->getVariableHandler().getVariablePtr(argName);
+        state->CreateStore(&argValue, argPtr);
     }
 
     BFMachine localBFMachine = state->createBFMachine();
