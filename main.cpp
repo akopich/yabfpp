@@ -72,7 +72,7 @@ int main(int ac, char* av[]) {
     state.pushVariableHandlerStack();
     BFMachine bfMachine = state.createBFMachine();
     Parser parser;
-    auto expr = parser.parse(state, src);
+    auto expr = parser.parse(src);
     expr->generate(bfMachine);
     state.finalizeAndPrintIRtoFile(outPath);
     return 0;

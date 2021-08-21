@@ -13,7 +13,7 @@ class Parser {
 private:
     std::map<std::string, int> functionName2argNumber;
 
-    std::unique_ptr<Expr> parseToken(const CompilerState& state, Source::Iterator& i);
+    std::unique_ptr<Expr> parseExpr(Source::Iterator& i);
 
     template<typename P>
     std::string parseWithPredicate(Source::Iterator& i, P predicate) {
@@ -27,7 +27,7 @@ private:
 
     std::unique_ptr<Int8Expr> parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed);
 
-    std::unique_ptr<Expr> parse(const CompilerState& state, Source::Iterator& i);
+    std::unique_ptr<Expr> parse(Source::Iterator& i);
 
     std::string parseVariableName(Source::Iterator& i);
 
@@ -37,8 +37,21 @@ private:
 
     std::vector<std::shared_ptr<Int8Expr>> parseCallFunctionArgumentList(Source::Iterator& i);
 
+    std::unique_ptr<Expr> parseBFFunctionDefinition(Source::Iterator& i);
+
+    std::unique_ptr<Expr> parseBFFunctionCall(Source::Iterator& i);
+
+    std::unique_ptr<Expr> parseIfElseExpr(Source::Iterator& i);
+
+    std::unique_ptr<Expr> parseAddExpr(Source::Iterator& i, char leadingChar);
+
+    std::unique_ptr<Expr> parseMovePtrExpr(Source::Iterator& i, char leadingChar);
+
+    std::unique_ptr<Expr> parseLoopExpr(Source::Iterator& i);
+
 public:
-    std::unique_ptr<Expr> parse(const CompilerState& state, const Source& src);
+
+    std::unique_ptr<Expr> parse(const Source& src);
 };
 
 

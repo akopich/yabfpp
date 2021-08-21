@@ -167,7 +167,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
     builder->SetInsertPoint(functionBody);
 
-    for (auto[argValue, argName] : zip(function->args(), argumentNames)) {
+    for (const auto&[argValue, argName] : zip(function->args(), argumentNames)) {
         auto argPtr = state->getVariableHandler().getVariablePtr(argName);
         state->CreateStore(&argValue, argPtr);
     }

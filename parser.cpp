@@ -3,8 +3,6 @@
 //
 
 #include <iostream>
-#include "CompilerState.h"
-#include <algorithm>
 #include <cctype>
 #include <memory>
 #include <vector>
@@ -25,61 +23,25 @@ void checkBlockClosed(Source::Iterator& i, char expected) {
     ++i;
 }
 
-std::unique_ptr<Expr> Parser::parseToken(const CompilerState& state, Source::Iterator& i) {
+std::unique_ptr<Expr> Parser::parseExpr(Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
         case '\\':
             return std::make_unique<Return>();
-        case '@': {
-            std::string functionName = parseVariableName(i);
-            std::vector<std::string> argNames = parseFunctionArgumentList(i);
-            functionName2argNumber[functionName] = argNames.size();
-            checkBlockClosed(i, '{');
-            auto body = parse(state, i);
-            checkBlockClosed(i, '}');
-            return std::make_unique<BFFunctionDeclaration>(functionName, argNames, move(body));
-        }
-        case '$': {
-            std::string functionName = parseVariableName(i);
-            auto functionIt = functionName2argNumber.find(functionName);
-            if (functionIt == functionName2argNumber.end()) {
-                throw SyntaxErrorException(i, "Function " + functionName + " is not defined");
-            }
-            auto argExprs = parseCallFunctionArgumentList(i);
-            if (argExprs.size() != functionIt->second) {
-                throw SyntaxErrorException(i,
-                                           "Function " + functionName + " takes " + std::to_string(functionIt->second) +
-                                           " arguments, " +
-                                           std::to_string(argExprs.size()) + " supplied");
-            }
-            return std::make_unique<BFFunctionCall>(functionName, argExprs);
-        }
-        case '{': {
-            auto ifExpr = parse(state, i);
-            checkBlockClosed(i, '}');
-            if (*i == '{') {
-                i++;
-                auto elseExpr = parse(state, i);
-                checkBlockClosed(i, '}');
-                return std::make_unique<IfElse>(move(ifExpr), move(elseExpr));
-            }
-
-            return std::make_unique<IfElse>(move(ifExpr), getNoOpExpr());
-        }
+        case '@':
+            return parseBFFunctionDefinition(i);
+        case '$':
+            return parseBFFunctionCall(i);
+        case '{':
+            return parseIfElseExpr(i);
         case '^':
             return std::make_unique<WriteToVariable>(parseVariableName(i));
-        case '_': {
+        case '_':
             return std::make_unique<AssignExpressionValueToTheCurrentCell>(parseInt8Expr(i, false));
-        }
         case '+':
-        case '-': {
-            auto add = parseInt8Expr(i, true);
-            if (c == '-') {
-                add = std::make_unique<MinusInt8Expr>(move(add));
-            }
-            return std::make_unique<AddExpr>(move(add));
-        }
+        case '-':
+            return parseAddExpr(i, c);
         case '.':
             return std::make_unique<PrintExpr>();
         case ',':
@@ -87,21 +49,73 @@ std::unique_ptr<Expr> Parser::parseToken(const CompilerState& state, Source::Ite
         case '*':
             return std::make_unique<PrintIntExpr>();
         case '<':
-        case '>': {
-            auto step = parseInt8Expr(i, true);
-            if (c == '<') {
-                step = std::make_unique<MinusInt8Expr>(move(step));
-            }
-            return std::make_unique<MovePtrExpr>(move(step));
-        }
-        case '[': {
-            auto body = parse(state, i);
-            checkBlockClosed(i, ']');
-            return std::make_unique<LoopExpr>(move(body));;
-        }
+        case '>':
+            return parseMovePtrExpr(i, c);
+        case '[':
+            return parseLoopExpr(i);
         default:
             throw SyntaxErrorException(i, "Unexpected symbol.");
     }
+}
+
+std::unique_ptr<Expr> Parser::parseLoopExpr(Source::Iterator& i) {
+    auto body = parse(i);
+    checkBlockClosed(i, ']');
+    return std::make_unique<LoopExpr>(move(body));
+}
+
+std::unique_ptr<Expr> Parser::parseMovePtrExpr(Source::Iterator& i, char leadingChar) {
+    auto step = parseInt8Expr(i, true);
+    if (leadingChar == '<') {
+        step = std::make_unique<MinusInt8Expr>(move(step));
+    }
+    return std::make_unique<MovePtrExpr>(move(step));
+}
+
+std::unique_ptr<Expr> Parser::parseAddExpr(Source::Iterator& i, char leadingChar) {
+    auto add = parseInt8Expr(i, true);
+    if (leadingChar == '-') {
+        add = std::make_unique<MinusInt8Expr>(move(add));
+    }
+    return std::make_unique<AddExpr>(move(add));
+}
+
+std::unique_ptr<Expr> Parser::parseIfElseExpr(Source::Iterator& i) {
+    auto ifExpr = parse(i);
+    checkBlockClosed(i, '}');
+    if (*i == '{') {
+        i++;
+        auto elseExpr = parse(i);
+        checkBlockClosed(i, '}');
+        return std::make_unique<IfElse>(move(ifExpr), move(elseExpr));
+    }
+
+    return std::make_unique<IfElse>(move(ifExpr), getNoOpExpr());
+}
+
+std::unique_ptr<Expr> Parser::parseBFFunctionCall(Source::Iterator& i) {
+    std::string functionName = parseVariableName(i);
+    auto functionIt = functionName2argNumber.find(functionName);
+    if (functionIt == functionName2argNumber.end()) {
+        throw SyntaxErrorException(i, "Function " + functionName + " is not defined");
+    }
+    auto argExprs = parseCallFunctionArgumentList(i);
+    if (argExprs.size() != functionIt->second) {
+        throw SyntaxErrorException(i,
+                                   "Function " + functionName + " takes " + std::to_string(functionIt->second) +
+                                   " arguments, " + std::to_string(argExprs.size()) + " supplied");
+    }
+    return std::make_unique<BFFunctionCall>(functionName, argExprs);
+}
+
+std::unique_ptr<Expr> Parser::parseBFFunctionDefinition(Source::Iterator& i) {
+    std::string functionName = parseVariableName(i);
+    std::vector<std::string> argNames = parseFunctionArgumentList(i);
+    functionName2argNumber[functionName] = argNames.size();
+    checkBlockClosed(i, '{');
+    auto body = parse(i);
+    checkBlockClosed(i, '}');
+    return std::make_unique<BFFunctionDeclaration>(functionName, argNames, move(body));
 }
 
 std::vector<std::shared_ptr<Int8Expr>> Parser::parseCallFunctionArgumentList(Source::Iterator& i) {
@@ -147,10 +161,10 @@ std::string Parser::parseIntLiteral(Source::Iterator& i) {
     return parseWithPredicate(i, isdigit);
 }
 
-std::unique_ptr<Expr> Parser::parse(const CompilerState& state, Source::Iterator& i) {
+std::unique_ptr<Expr> Parser::parse(Source::Iterator& i) {
     std::vector<std::shared_ptr<Expr>> v;
     while (!i.isEnd() && *i != ']' && *i != '}') {
-        v.push_back(move(parseToken(state, i)));
+        v.push_back(move(parseExpr(i)));
     }
     return std::make_unique<ListExpr>(v);
 }
@@ -170,8 +184,8 @@ std::unique_ptr<Int8Expr> Parser::parseInt8Expr(Source::Iterator& i, bool defaul
     throw SyntaxErrorException(i, "a variable name or an integer literal is expected");
 }
 
-std::unique_ptr<Expr> Parser::parse(const CompilerState& state, const Source& src) {
+std::unique_ptr<Expr> Parser::parse(const Source& src) {
     functionName2argNumber = std::map<std::string, int>();
-    auto it = src.begin();
-    return std::unique_ptr<Expr>(parse(state, it));
+    auto i = src.begin();
+    return std::unique_ptr<Expr>(parse(i));
 }
