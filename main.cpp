@@ -8,7 +8,6 @@
 #include "parser.h"
 #include "Source.h"
 
-using namespace boost;
 namespace po = boost::program_options;
 
 std::optional<std::vector<std::string>> readFile(const std::string& inputPath) {

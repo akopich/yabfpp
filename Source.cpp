@@ -5,6 +5,7 @@
 #include "Source.h"
 
 #include <utility>
+#include <algorithm>
 
 
 Source::Source(std::vector<std::string> lines, std::function<bool(char)> skip) :

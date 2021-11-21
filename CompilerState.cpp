@@ -150,7 +150,7 @@ llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s) const {
 void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath) const {
     return0FromMain();
     std::error_code EC;
-    llvm::raw_ostream* out = new llvm::raw_fd_ostream(outPath, EC, llvm::sys::fs::F_None);
+    llvm::raw_ostream *out = new llvm::raw_fd_ostream(outPath, EC, llvm::sys::fs::OF_None);
     module->print(*out, nullptr);
 }
 

@@ -185,7 +185,7 @@ std::unique_ptr<Int8Expr> Parser::parseInt8Expr(Source::Iterator& i, bool defaul
 }
 
 std::unique_ptr<Expr> Parser::parse(const Source& src) {
-    functionName2argNumber = std::map<std::string, int>();
+    functionName2argNumber.clear();
     auto i = src.begin();
-    return std::unique_ptr<Expr>(parse(i));
+    return parse(i);
 }
