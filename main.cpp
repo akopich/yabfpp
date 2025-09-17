@@ -7,6 +7,7 @@
 #include "Expr.h"
 #include "parser.h"
 #include "Source.h"
+#include "llvm/TargetParser/Host.h"
 
 namespace po = boost::program_options;
 

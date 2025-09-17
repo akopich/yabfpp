@@ -23,5 +23,5 @@ llvm::Value* VariableHandler::getVariablePtr(const std::string& name) {
 }
 
 llvm::Value* VariableHandler::getVariableValue(const std::string& name) {
-    return state->CreateLoad(getVariablePtr(name));
+    return state->CreateLoad(state->builder->getInt8Ty(), getVariablePtr(name));
 }

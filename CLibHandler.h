@@ -40,6 +40,10 @@ public:
     friend CompilerState
     initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
 
+    auto* getInt8PtrTy() const {
+        return llvm::PointerType::get(builder->getInt8Ty(), 0);
+    }
+
     CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder);
 
     llvm::Function* declareFunction(const std::vector<llvm::Type*>& argTypes,

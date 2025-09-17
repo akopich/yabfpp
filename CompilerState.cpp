@@ -16,12 +16,14 @@ void CompilerState::generateEntryPoint() {
 }
 
 llvm::Value* CompilerState::getCharArrayElement(llvm::Value* arr, llvm::Value* index) const {
-    auto elemPtr = builder->CreateGEP(arr, index);
-    return builder->CreateLoad(elemPtr);
+    auto* type = llvm::Type::getInt8Ty(*context);
+    auto elemPtr = builder->CreateGEP(type, arr, index);
+    return builder->CreateLoad(type, elemPtr);
 }
 
 void CompilerState::setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const {
-    auto elemPtr = builder->CreateGEP(arr, index);
+    auto* type = llvm::Type::getInt8Ty(*context);
+    auto elemPtr = builder->CreateGEP(type, arr, index);
     builder->CreateStore(theChar, elemPtr);
 }
 
@@ -35,7 +37,7 @@ BFMachine CompilerState::createBFMachine() {
 
     auto pointer = allocateAndInitialize(builder->getInt32Ty(), getConstInt(0));
     auto tapeSizePtr = allocateAndInitialize(builder->getInt32Ty(), getConstInt(initialTapeSize));
-    auto tapePtr = allocateAndInitialize(builder->getInt8PtrTy(), tape);
+    auto tapePtr = allocateAndInitialize(getInt8PtrTy(), tape);
 
     return {tapePtr, pointer, tapeSizePtr, this};
 }
@@ -45,7 +47,7 @@ llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Fu
 }
 
 void CompilerState::generateTapeDoublingFunction() {
-    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(builder->getInt8PtrTy(), 0),
+    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(getInt8PtrTy(), 0),
                                          builder->getInt32Ty(),
                                          llvm::PointerType::get(builder->getInt32Ty(), 0)};
     llvm::Function* doubler = clib->declareFunction(argTypes,
@@ -63,8 +65,8 @@ void CompilerState::generateTapeDoublingFunction() {
     llvm::Value* newIndex = it + 1;
     llvm::Value* tapeSizePtr = it + 2;
 
-    llvm::Value* tapeSize = builder->CreateLoad(tapeSizePtr);
-    llvm::Value* tape = builder->CreateLoad(tapePtr);
+    llvm::Value* tapeSize = builder->CreateLoad(builder->getInt32Ty(), tapeSizePtr);
+    llvm::Value* tape = builder->CreateLoad(getInt8PtrTy(), tapePtr);
     llvm::Value* needsToGrow = builder->CreateICmpUGE(newIndex, tapeSize, "check if the tapePtr needs to grow");
 
     auto doublingTapeBB = createBasicBlock("Doubling the tapePtr", doubler);
@@ -134,10 +136,6 @@ CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
           platformDependent(move(platformDependent)),
           initialTapeSize(initialTapeSize) {}
 
-llvm::Value* CompilerState::CreateLoad(llvm::Value* ptr) const {
-    return builder->CreateLoad(ptr);
-}
-
 
 llvm::Value* CompilerState::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
     return builder->CreateAdd(lhs, rhs, name);
@@ -171,7 +169,7 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
     auto platformDependent = getPlatformDependent(targetTriple);
-    CompilerState state(move(context), move(module), move(builder), move(clib), move(platformDependent), tapeSize);
+    CompilerState state(std::move(context), move(module), move(builder), move(clib), move(platformDependent), tapeSize);
 
     state.generateReadCharFunction();
     state.generateTapeDoublingFunction();

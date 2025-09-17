@@ -17,9 +17,8 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/TargetRegistry.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/Type.h"
@@ -33,13 +32,13 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/APFloat.h"
 #include "BFMachine.h"
 #include "CLibHandler.h"
 #include "PlatformDependent.h"
 #include "ConstantHelper.h"
 #include "VariableHandler.h"
+#include <stack>
 
 class BFMachine;
 
@@ -83,6 +82,10 @@ public:
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
+    auto* getInt8PtrTy() const {
+        return llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0);
+    }
+
     llvm::Function* declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args);
 
     void popFunctionStack();
@@ -111,7 +114,9 @@ public:
 
     llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index) const;
 
-    llvm::Value* CreateLoad(llvm::Value* ptr) const;
+    llvm::Value* CreateLoad(llvm::Type* type, llvm::Value* ptr) const {
+        return builder->CreateLoad(type, ptr);
+    }
 
     llvm::Value* CreateStore(llvm::Value* value, llvm::Value* ptr) const;
 

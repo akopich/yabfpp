@@ -17,7 +17,6 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/APFloat.h"
 
 #include "CompilerState.h"
