@@ -31,8 +31,6 @@
 
 class BFMachine;
 
-class CLibHandler;
-
 class CompilerState : public ConstantHelper {
 private:
     void generateEntryPoint();

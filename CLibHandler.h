@@ -8,10 +8,7 @@
 #include <memory>
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
-#include "CompilerState.h"
 #include "ConstantHelper.h"
-
-class CompilerState;
 
 class CLibHandler : public ConstantHelper {
 private:
@@ -30,15 +27,11 @@ private:
     void generateGetChar() const;
 
     void generateMemcpy() const;
-
-    void init() const;
-
 protected:
     llvm::LLVMContext* getContext() const override;
 
 public:
-    friend CompilerState
-    initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize);
+    void init() const;
 
     auto* getInt8PtrTy() const {
         return llvm::PointerType::get(builder->getInt8Ty(), 0);
