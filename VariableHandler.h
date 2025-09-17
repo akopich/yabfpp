@@ -8,19 +8,30 @@
 #include <string>
 #include <map>
 #include <llvm/IR/Value.h>
-#include "CompilerState.h"
+#include "Builder.h"
 
 class VariableHandler {
 private:
     std::map<std::string, llvm::Value*> variableName2Ptr;
 
-    CompilerState* state;
+    Builder* builder;
 public:
-    VariableHandler(CompilerState* state);
+    VariableHandler(Builder* builder): builder(builder) {}
 
-    llvm::Value* getVariablePtr(const std::string& name);
+    Pointer getVariablePtr(const std::string& name) {
+        auto it = variableName2Ptr.find(name);
+        if (it != variableName2Ptr.end()) {
+            return {builder->getInt8Ty(), it->second};
+        }
+        auto ptr = builder->CreateAlloca(builder->getInt8Ty());
+        variableName2Ptr[name] = ptr;
+        return {builder->getInt8Ty(), ptr};
+    }
 
-    llvm::Value* getVariableValue(const std::string& name);
+
+    llvm::Value* getVariableValue(const std::string& name) {
+        return builder->CreateLoad(getVariablePtr(name));
+    }
 };
 
 

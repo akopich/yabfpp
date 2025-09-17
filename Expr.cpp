@@ -21,7 +21,7 @@ void MovePtrExpr::generate(BFMachine& bfMachine) const {
 
     state.generateCallTapeDoublingFunction(bfMachine, newIndex);
 
-    builder->CreateStore(newIndex, bfMachine.pointer);
+    builder->CreateStore(newIndex, bfMachine.pointer.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
@@ -78,8 +78,8 @@ LoopExpr::LoopExpr(std::unique_ptr<Expr> body) : body(std::move(body)) {}
 
 void WriteToVariable::generate(BFMachine& bfMachine) const {
     CompilerState* state = bfMachine.state;
-    llvm::Value* ptr = state->getVariableHandler().getVariablePtr(name);
-    state->builder->CreateStore(bfMachine.getCurrentChar(), ptr);
+    auto ptr = state->getVariableHandler().getVariablePtr(name);
+    state->builder->CreateStore(bfMachine.getCurrentChar(), ptr.pointer);
 }
 
 WriteToVariable::WriteToVariable(std::string name) : name(std::move(name)) {}
@@ -169,7 +169,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
 
     for (const auto&[argValue, argName] : zip(function->args(), argumentNames)) {
         auto argPtr = state->getVariableHandler().getVariablePtr(argName);
-        state->CreateStore(&argValue, argPtr);
+        state->CreateStore(&argValue, argPtr.pointer);
     }
 
     BFMachine localBFMachine = state->createBFMachine();

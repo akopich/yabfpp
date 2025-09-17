@@ -3,6 +3,8 @@
 //
 
 #include "CompilerState.h"
+#include "Pointer.h"
+#include <llvm/Support/FileSystem.h>
 
 
 void CompilerState::generateEntryPoint() {
@@ -18,7 +20,7 @@ void CompilerState::generateEntryPoint() {
 llvm::Value* CompilerState::getCharArrayElement(llvm::Value* arr, llvm::Value* index) const {
     auto* type = llvm::Type::getInt8Ty(*context);
     auto elemPtr = builder->CreateGEP(type, arr, index);
-    return builder->CreateLoad(type, elemPtr);
+    return builder->CreateLoad(Pointer{type, elemPtr});
 }
 
 void CompilerState::setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const {
@@ -65,8 +67,8 @@ void CompilerState::generateTapeDoublingFunction() {
     llvm::Value* newIndex = it + 1;
     llvm::Value* tapeSizePtr = it + 2;
 
-    llvm::Value* tapeSize = builder->CreateLoad(builder->getInt32Ty(), tapeSizePtr);
-    llvm::Value* tape = builder->CreateLoad(getInt8PtrTy(), tapePtr);
+    llvm::Value* tapeSize = builder->CreateLoad(Pointer{builder->getInt32Ty(), tapeSizePtr});
+    llvm::Value* tape = builder->CreateLoad(Pointer{getInt8PtrTy(), tapePtr});
     llvm::Value* needsToGrow = builder->CreateICmpUGE(newIndex, tapeSize, "check if the tapePtr needs to grow");
 
     auto doublingTapeBB = createBasicBlock("Doubling the tapePtr", doubler);
@@ -90,7 +92,7 @@ void CompilerState::generateTapeDoublingFunction() {
 
 
 void CompilerState::generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const {
-    std::vector<llvm::Value*> printArgs = {machine.tapePtr, newIndex, machine.tapeSizePtr};
+    std::vector<llvm::Value*> printArgs = {machine.tapePtr.pointer, newIndex, machine.tapeSizePtr.pointer};
     builder->CreateCall(module->getFunction("doubleTapeIfNeeded"), printArgs);
 }
 
@@ -125,15 +127,15 @@ void CompilerState::generateReadCharFunction() {
 
 CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                              std::unique_ptr<llvm::Module> module,
-                             std::unique_ptr<llvm::IRBuilder<>> builder,
+                             std::unique_ptr<Builder> builder,
                              std::unique_ptr<CLibHandler> clib,
                              std::unique_ptr<PlatformDependent> platformDependent,
                              int initialTapeSize)
-        : context(move(context)),
-          module(move(module)),
-          builder(move(builder)),
-          clib(move(clib)),
-          platformDependent(move(platformDependent)),
+        : context(std::move(context)),
+          module(std::move(module)),
+          builder(std::move(builder)),
+          clib(std::move(clib)),
+          platformDependent(std::move(platformDependent)),
           initialTapeSize(initialTapeSize) {}
 
 
@@ -153,15 +155,9 @@ void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath) const {
 }
 
 
-llvm::Value* CompilerState::allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
-    auto pointer = builder->CreateAlloca(type);
-    builder->CreateStore(value, pointer);
-    return pointer;
-}
-
 CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, const int tapeSize) {
     std::unique_ptr<llvm::LLVMContext> context = std::make_unique<llvm::LLVMContext>();
-    std::unique_ptr<llvm::IRBuilder<>> builder = std::make_unique<llvm::IRBuilder<>>(*context);
+    std::unique_ptr<Builder> builder = std::make_unique<Builder>(*context);
     std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(name, *context);
 
     module->setTargetTriple(targetTriple);
@@ -169,7 +165,7 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
     auto platformDependent = getPlatformDependent(targetTriple);
-    CompilerState state(std::move(context), move(module), move(builder), move(clib), move(platformDependent), tapeSize);
+    CompilerState state(std::move(context), std::move(module), std::move(builder), std::move(clib), std::move(platformDependent), tapeSize);
 
     state.generateReadCharFunction();
     state.generateTapeDoublingFunction();
@@ -191,7 +187,7 @@ llvm::Value* CompilerState::CreateStore(llvm::Value* value, llvm::Value* ptr) co
 }
 
 void CompilerState::pushVariableHandlerStack() {
-    variableHandlerStack.emplace(std::make_shared<VariableHandler>(this));
+    variableHandlerStack.emplace(std::make_shared<VariableHandler>(builder.get()));
 }
 
 void CompilerState::popVariableHandlerStack() {

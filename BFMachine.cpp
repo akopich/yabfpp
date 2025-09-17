@@ -5,7 +5,7 @@
 #include "BFMachine.h"
 
 llvm::Value* BFMachine::getIndex() const {
-    return state->CreateLoad(state->builder->getInt32Ty(), pointer);
+    return state->builder->CreateLoad(pointer);
 }
 
 llvm::Value* BFMachine::getCurrentChar() const {
@@ -17,16 +17,13 @@ void BFMachine::setCurrentChar(llvm::Value* theChar) const {
 }
 
 llvm::Value* BFMachine::getTapeSize() const {
-    return state->CreateLoad(state->builder->getInt32Ty(), tapeSizePtr);
+    return state->builder->CreateLoad(tapeSizePtr);
 }
 
-BFMachine::BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state)
-        : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state) {}
-
 llvm::Value* BFMachine::getTape() const {
-    return state->CreateLoad(state->getInt8PtrTy(), tapePtr);
+    return state->builder->CreateLoad(tapePtr);
 }
 
 void BFMachine::setTapePtr(llvm::Value* tape) const {
-    state->builder->CreateStore(tape, tapePtr);
+    state->builder->CreateStore(tape, tapePtr.pointer);
 }

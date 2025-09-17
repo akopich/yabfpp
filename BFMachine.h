@@ -21,18 +21,19 @@
 
 #include "CompilerState.h"
 #include "CLibHandler.h"
+#include "Pointer.h"
 
 class CompilerState;
 
 class BFMachine {
 public:
-    llvm::Value* tapePtr;
-    llvm::Value* pointer;
-    llvm::Value* tapeSizePtr;
+    Pointer tapePtr;
+    Pointer pointer;
+    Pointer tapeSizePtr;
     CompilerState* const state;
 
 
-    BFMachine(llvm::Value* tapePtr, llvm::Value* pointer, llvm::Value* tapeSizePtr, CompilerState* state);
+    BFMachine(Pointer tapePtr, Pointer pointer, Pointer tapeSizePtr, CompilerState* state) : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state) {}
 
     [[nodiscard]] llvm::Value* getIndex() const;
 

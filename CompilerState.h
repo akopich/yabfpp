@@ -9,17 +9,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <map>
-#include <cstdlib>
-#include <cstdio>
-#include <cctype>
-#include <algorithm>
-#include "llvm/Target/TargetOptions.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/FileSystem.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Module.h"
@@ -29,22 +19,19 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/APFloat.h"
 #include "BFMachine.h"
+#include "Builder.h"
 #include "CLibHandler.h"
 #include "PlatformDependent.h"
 #include "ConstantHelper.h"
+#include "Pointer.h"
 #include "VariableHandler.h"
 #include <stack>
 
 class BFMachine;
 
 class CLibHandler;
-
-class VariableHandler;
 
 class CompilerState : public ConstantHelper {
 private:
@@ -75,7 +62,7 @@ public:
 
     CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                   std::unique_ptr<llvm::Module> module,
-                  std::unique_ptr<llvm::IRBuilder<>> builder,
+                  std::unique_ptr<Builder> builder,
                   std::unique_ptr<CLibHandler> clib,
                   std::unique_ptr<PlatformDependent> platformDependent,
                   int initialTapeSize);
@@ -98,7 +85,7 @@ public:
 
     void popVariableHandlerStack();
 
-    std::unique_ptr<llvm::IRBuilder<>> builder;
+    std::unique_ptr<Builder> builder;
 
     std::unique_ptr<CLibHandler> clib;
 
@@ -114,10 +101,6 @@ public:
 
     llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index) const;
 
-    llvm::Value* CreateLoad(llvm::Type* type, llvm::Value* ptr) const {
-        return builder->CreateLoad(type, ptr);
-    }
-
     llvm::Value* CreateStore(llvm::Value* value, llvm::Value* ptr) const;
 
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
@@ -126,7 +109,11 @@ public:
 
     [[nodiscard]] llvm::Value* generateCallReadCharFunction() const;
 
-    llvm::Value* allocateAndInitialize(llvm::Type* type, llvm::Value* value) const;
+    Pointer allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
+        auto pointer = builder->CreateAlloca(type);
+        builder->CreateStore(value, pointer);
+        return {type, pointer};
+    }
 };
 
 CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, int tapeSize);
