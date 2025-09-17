@@ -5,11 +5,9 @@
 #ifndef YABFPP_SOURCE_H
 #define YABFPP_SOURCE_H
 
-#include <utility>
 #include <vector>
 #include <string>
 #include <functional>
-#include <set>
 
 
 class Source {

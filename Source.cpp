@@ -4,6 +4,7 @@
 
 #include "Source.h"
 
+#include <set>
 #include <utility>
 #include <algorithm>
 
