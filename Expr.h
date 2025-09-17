@@ -2,7 +2,7 @@
 // Created by valerij on 7/30/21.
 //
 
-#include "CompilerState.h"
+#include "BFMachine.h"
 
 #ifndef YABF_EXPR_H
 #define YABF_EXPR_H

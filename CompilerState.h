@@ -15,12 +15,10 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/BasicBlock.h"
-#include "BFMachine.h"
 #include "Builder.h"
 #include "CLibHandler.h"
 #include "PlatformDependent.h"
@@ -28,8 +26,6 @@
 #include "Pointer.h"
 #include "VariableHandler.h"
 #include <stack>
-
-class BFMachine;
 
 class CompilerState : public ConstantHelper {
 private:
@@ -41,10 +37,7 @@ private:
     std::unique_ptr<PlatformDependent> platformDependent;
     std::stack<std::shared_ptr<VariableHandler>> variableHandlerStack;
 
-    const int initialTapeSize;
-
     std::stack<llvm::Function*> functionStack;
-
 
     void generateTapeDoublingFunction();
 
@@ -55,15 +48,13 @@ protected:
 
 public:
     friend CompilerState initCompilerState(const std::string& name,
-                                           const std::string& targetTriple,
-                                           int tapeSize);
+                                           const std::string& targetTriple);
 
     CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                   std::unique_ptr<llvm::Module> module,
                   std::unique_ptr<Builder> builder,
                   std::unique_ptr<CLibHandler> clib,
-                  std::unique_ptr<PlatformDependent> platformDependent,
-                  int initialTapeSize);
+                  std::unique_ptr<PlatformDependent> platformDependent);
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
@@ -91,8 +82,6 @@ public:
 
     [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
 
-    BFMachine createBFMachine();
-
     void finalizeAndPrintIRtoFile(const std::string& outPath) const;
 
     void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const;
@@ -103,8 +92,6 @@ public:
 
     llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
 
-    void generateCallTapeDoublingFunction(BFMachine& machine, llvm::Value* newIndex) const;
-
     [[nodiscard]] llvm::Value* generateCallReadCharFunction() const;
 
     Pointer allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
@@ -114,7 +101,7 @@ public:
     }
 };
 
-CompilerState initCompilerState(const std::string& name, const std::string& targetTriple, int tapeSize);
+CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

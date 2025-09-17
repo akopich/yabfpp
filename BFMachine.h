@@ -10,20 +10,15 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/APFloat.h"
 
 #include "CompilerState.h"
 #include "CLibHandler.h"
 #include "Pointer.h"
-
-class CompilerState;
 
 class BFMachine {
 public:
@@ -31,9 +26,10 @@ public:
     Pointer pointer;
     Pointer tapeSizePtr;
     CompilerState* const state;
+    int initialTapeSize;
 
 
-    BFMachine(Pointer tapePtr, Pointer pointer, Pointer tapeSizePtr, CompilerState* state) : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state) {}
+    BFMachine(Pointer tapePtr, Pointer pointer, Pointer tapeSizePtr, CompilerState* state, int initialTapeSize) : tapePtr(tapePtr), pointer(pointer), tapeSizePtr(tapeSizePtr), state(state), initialTapeSize(initialTapeSize){}
 
     [[nodiscard]] llvm::Value* getIndex() const;
 
@@ -46,7 +42,22 @@ public:
     [[nodiscard]] llvm::Value* getCurrentChar() const;
 
     void setCurrentChar(llvm::Value* theChar) const;
+
+    void generateCallTapeDoublingFunction(llvm::Value* newIndex) const {
+        std::vector<llvm::Value*> printArgs = {tapePtr.pointer, newIndex, tapeSizePtr.pointer};
+        state->builder->CreateCall(state->module->getFunction("doubleTapeIfNeeded"), printArgs);
+    }
 };
+
+inline BFMachine createBFMachine(CompilerState* state, int initialTapeSize) {
+    auto tape = state->clib->generateCallCalloc(state->getConstInt(initialTapeSize));
+
+    auto pointer = state->allocateAndInitialize(state->builder->getInt32Ty(), state->getConstInt(0));
+    auto tapeSizePtr = state->allocateAndInitialize(state->builder->getInt32Ty(), state->getConstInt(initialTapeSize));
+    auto tapePtr = state->allocateAndInitialize(state->getInt8PtrTy(), tape);
+
+    return {tapePtr, pointer, tapeSizePtr, state, initialTapeSize};
+}
 
 
 #endif //YABF_BFMACHINE_H

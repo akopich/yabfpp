@@ -68,9 +68,9 @@ int main(int ac, char* av[]) {
     }
     Source src = getSource(program.value(), legacyMode);
 
-    auto state = initCompilerState(inputPath, targetTriple, initialTapeSize);
+    auto state = initCompilerState(inputPath, targetTriple);
     state.pushVariableHandlerStack();
-    BFMachine bfMachine = state.createBFMachine();
+    BFMachine bfMachine = createBFMachine(&state, initialTapeSize);
     Parser parser;
     auto expr = parser.parse(src);
     expr->generate(bfMachine);

@@ -19,7 +19,7 @@ void MovePtrExpr::generate(BFMachine& bfMachine) const {
     llvm::Value* stepValueI32 = builder->CreateIntCast(stepValueI8, builder->getInt32Ty(), true);
     auto newIndex = state.CreateAdd(index, stepValueI32, "move pointer");
 
-    state.generateCallTapeDoublingFunction(bfMachine, newIndex);
+    bfMachine.generateCallTapeDoublingFunction(newIndex);
 
     builder->CreateStore(newIndex, bfMachine.pointer.pointer);
 }
@@ -172,7 +172,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
         state->CreateStore(&argValue, argPtr.pointer);
     }
 
-    BFMachine localBFMachine = state->createBFMachine();
+    BFMachine localBFMachine = createBFMachine(state, bfMachine.initialTapeSize);
     body->generate(localBFMachine);
 
     Return defaultReturn;
