@@ -34,7 +34,7 @@ private:
     void return0FromMain() const;
 
     std::unique_ptr<llvm::LLVMContext> context;
-    std::unique_ptr<PlatformDependent> platformDependent;
+    PlatformDependent platformDependent;
     std::stack<std::shared_ptr<VariableHandler>> variableHandlerStack;
 
     std::stack<llvm::Function*> functionStack;
@@ -51,7 +51,7 @@ public:
                   std::unique_ptr<llvm::Module> module,
                   std::unique_ptr<Builder> builder,
                   std::unique_ptr<CLibHandler> clib,
-                  std::unique_ptr<PlatformDependent> platformDependent);
+                  PlatformDependent platformDependent);
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 

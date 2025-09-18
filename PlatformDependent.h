@@ -5,34 +5,32 @@
 #ifndef YABFPP_PLATFORMDEPENDENT_H
 #define YABFPP_PLATFORMDEPENDENT_H
 
+#include <climits>
 #include <string>
-#include <memory>
-#include <stdexcept>
+#include <iostream>
 
-
-class PlatformDependent {
-public:
-    virtual int getEOF() = 0;
-
-    virtual bool isCharSigned() = 0;
-
-    virtual ~PlatformDependent();
+struct PlatformDependent {
+    int eOF;
+    bool isCharSigned;
 };
 
-class X86_64PCLinuxGNU : public PlatformDependent {
-public:
-    int getEOF() override;
+inline PlatformDependent getPlatformDependent(const std::string& target) {
+    static constexpr PlatformDependent kX86_64PCLinuxGNU{
+        .eOF = -1,
+        .isCharSigned = true
+    };
 
-    bool isCharSigned() override;
-};
+    static constexpr PlatformDependent kDefaultPlatform{
+        .eOF = EOF,
+        .isCharSigned = CHAR_MIN < 0
+    };
 
-class DefaultPlatform : public PlatformDependent {
-public:
-    int getEOF() override;
+    if (target == "x86_64-pc-linux-gnu" || target == "wasm32-unknown-emscripten")
+        return kX86_64PCLinuxGNU;
 
-    bool isCharSigned() override;
-};
-
-std::unique_ptr<PlatformDependent> getPlatformDependent(const std::string& target);
+    std::cout << "The platform " << target << " is not explicitly supported. The IR will"
+        << " be generated for the platform the compiler was built on." << std::endl;
+    return kDefaultPlatform;
+}
 
 #endif //YABFPP_PLATFORMDEPENDENT_H

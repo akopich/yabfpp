@@ -90,7 +90,7 @@ void CompilerState::generateReadCharFunction() {
     builder->SetInsertPoint(functionBody);
 
     llvm::Value* readInt = clib->generateCallGetChar();
-    llvm::Value* EOFValue = getConstInt(platformDependent->getEOF());
+    llvm::Value* EOFValue = getConstInt(platformDependent.eOF);
     llvm::Value* isEOF = builder->CreateICmpEQ(readInt, EOFValue, "EOF check");
 
     llvm::BasicBlock* isEOFBB = createBasicBlock("is EOF Block", readChar);
@@ -102,7 +102,7 @@ void CompilerState::generateReadCharFunction() {
 
 
     builder->SetInsertPoint(notEOFBB);
-    llvm::Value* readI8 = builder->CreateIntCast(readInt, builder->getInt8Ty(), platformDependent->isCharSigned());
+    llvm::Value* readI8 = builder->CreateIntCast(readInt, builder->getInt8Ty(), platformDependent.isCharSigned);
     builder->CreateRet(readI8);
 }
 
@@ -114,13 +114,13 @@ CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                              std::unique_ptr<llvm::Module> module,
                              std::unique_ptr<Builder> builder,
                              std::unique_ptr<CLibHandler> clib,
-                             std::unique_ptr<PlatformDependent> platformDependent)
+                             PlatformDependent platformDependent)
         : ConstantHelper(context.get()),
           context(std::move(context)),
           module(std::move(module)),
           builder(std::move(builder)),
           clib(std::move(clib)),
-          platformDependent(std::move(platformDependent)) {}
+          platformDependent(platformDependent) {}
 
 
 llvm::Value* CompilerState::CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const {
@@ -149,7 +149,7 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     std::unique_ptr<CLibHandler> clib = std::make_unique<CLibHandler>(module.get(), builder.get());
     clib->init();
     auto platformDependent = getPlatformDependent(targetTriple);
-    CompilerState state(std::move(context), std::move(module), std::move(builder), std::move(clib), std::move(platformDependent));
+    CompilerState state(std::move(context), std::move(module), std::move(builder), std::move(clib), platformDependent);
 
     state.generateReadCharFunction();
     state.generateTapeDoublingFunction();
