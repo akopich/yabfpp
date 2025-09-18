@@ -5,8 +5,7 @@
 #include "Expr.h"
 
 #include <utility>
-#include <boost/fusion/algorithm/transformation/zip.hpp>
-#include <boost/fusion/include/zip.hpp>
+#include <ranges>
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 void MovePtrExpr::generate(BFMachine& bfMachine) const {
@@ -167,7 +166,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
     builder->SetInsertPoint(functionBody);
 
-    for (const auto&[argValue, argName] : zip(function->args(), argumentNames)) {
+    for (const auto&[argValue, argName] : std::ranges::views::zip(function->args(), argumentNames)) {
         auto argPtr = state->getVariableHandler().getVariablePtr(argName);
         state->CreateStore(&argValue, argPtr.pointer);
     }
