@@ -90,9 +90,3 @@ void CLibHandler::init() const {
     generateMemcpy();
 }
 
-CLibHandler::CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder) : module(module), builder(builder) {}
-
-llvm::LLVMContext* CLibHandler::getContext() const {
-    return &module->getContext();
-}
-

@@ -18,5 +18,5 @@ llvm::Value* ConstantHelper::getConstInt(const int i) const {
 }
 
 llvm::Value* ConstantHelper::getConstInt(const llvm::APInt& v) const {
-    return llvm::ConstantInt::get(*getContext(), v);
+    return llvm::ConstantInt::get(*context, v);
 }

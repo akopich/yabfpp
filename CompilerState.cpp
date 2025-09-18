@@ -115,7 +115,8 @@ CompilerState::CompilerState(std::unique_ptr<llvm::LLVMContext> context,
                              std::unique_ptr<Builder> builder,
                              std::unique_ptr<CLibHandler> clib,
                              std::unique_ptr<PlatformDependent> platformDependent)
-        : context(std::move(context)),
+        : ConstantHelper(context.get()),
+          context(std::move(context)),
           module(std::move(module)),
           builder(std::move(builder)),
           clib(std::move(clib)),
@@ -155,10 +156,6 @@ CompilerState initCompilerState(const std::string& name, const std::string& targ
     state.generateEntryPoint();
 
     return state;
-}
-
-[[nodiscard]] llvm::LLVMContext* CompilerState::getContext() const {
-    return context.get();
 }
 
 VariableHandler& CompilerState::getVariableHandler() {

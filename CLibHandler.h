@@ -9,7 +9,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "ConstantHelper.h"
 
-class CLibHandler : public ConstantHelper {
+class CLibHandler : ConstantHelper {
 private:
     llvm::Module* module;
 
@@ -26,9 +26,6 @@ private:
     void generateGetChar() const;
 
     void generateMemcpy() const;
-protected:
-    llvm::LLVMContext* getContext() const override;
-
 public:
     void init() const;
 
@@ -36,7 +33,7 @@ public:
         return llvm::PointerType::get(builder->getInt8Ty(), 0);
     }
 
-    CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder);
+    CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder) :ConstantHelper(&module->getContext()), module(module), builder(builder) {}
 
     llvm::Function* declareFunction(const std::vector<llvm::Type*>& argTypes,
                                     llvm::Type* resultType,

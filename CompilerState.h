@@ -43,9 +43,6 @@ private:
 
     void generateReadCharFunction();
 
-protected:
-    [[nodiscard]] llvm::LLVMContext* getContext() const override;
-
 public:
     friend CompilerState initCompilerState(const std::string& name,
                                            const std::string& targetTriple);

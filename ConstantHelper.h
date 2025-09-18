@@ -13,10 +13,11 @@ class ConstantHelper {
 private:
     [[nodiscard]] llvm::Value* getConstInt(const llvm::APInt& v) const;
 
-protected:
-    [[nodiscard]] virtual llvm::LLVMContext* getContext() const = 0;
-
+    llvm::LLVMContext* context;
 public:
+
+    ConstantHelper(llvm::LLVMContext* context) : context(context) {}
+
     [[nodiscard]] llvm::Value* getConstInt(int i) const;
 
     [[nodiscard]] llvm::Value* getConst64(int i) const;
