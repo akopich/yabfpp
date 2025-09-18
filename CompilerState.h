@@ -31,9 +31,9 @@ class CompilerState : public ConstantHelper {
 private:
     void generateEntryPoint();
 
-    void return0FromMain() const;
+    void return0FromMain();
 
-    std::unique_ptr<llvm::LLVMContext> context;
+    llvm::LLVMContext context;
     PlatformDependent platformDependent;
     std::stack<std::shared_ptr<VariableHandler>> variableHandlerStack;
 
@@ -43,27 +43,37 @@ private:
 
     void generateReadCharFunction();
 
-public:
-    friend CompilerState initCompilerState(const std::string& name,
-                                           const std::string& targetTriple);
+    void initClib() {
+        clib.init();
+    }
 
-    CompilerState(std::unique_ptr<llvm::LLVMContext> context,
-                  std::unique_ptr<llvm::Module> module,
-                  std::unique_ptr<Builder> builder,
-                  std::unique_ptr<CLibHandler> clib,
-                  PlatformDependent platformDependent);
+public:
+    friend std::unique_ptr<CompilerState> initCompilerState(std::string_view name,
+            std::string_view targetTriple);
+
+    CompilerState(std::string_view module_name,
+                  std::string_view targetTriple,
+                  PlatformDependent platformDependent)
+        : context(),
+          ConstantHelper(&context),
+          module(module_name, context),
+          builder(context),
+          clib(&module, &builder),
+          platformDependent(platformDependent) {
+              module.setTargetTriple(targetTriple);
+          }
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
-    auto* getInt8PtrTy() const {
-        return llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0);
+    auto* getInt8PtrTy() {
+        return llvm::PointerType::get(llvm::Type::getInt8Ty(context), 0);
     }
 
     llvm::Function* declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args);
 
     void popFunctionStack();
 
-    std::unique_ptr<llvm::Module> module;
+    llvm::Module module;
 
     VariableHandler& getVariableHandler();
 
@@ -71,34 +81,45 @@ public:
 
     void popVariableHandlerStack();
 
-    std::unique_ptr<Builder> builder;
+    Builder builder;
 
-    std::unique_ptr<CLibHandler> clib;
+    CLibHandler clib;
 
-    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s, llvm::Function* function) const;
+    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s, llvm::Function* function) ;
 
-    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) const;
+    [[nodiscard]] llvm::BasicBlock* createBasicBlock(const std::string& s) ;
 
-    void finalizeAndPrintIRtoFile(const std::string& outPath) const;
+    void finalizeAndPrintIRtoFile(const std::string& outPath) ;
 
-    void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) const;
+    void setCharArrayElement(llvm::Value* arr, llvm::Value* index, llvm::Value* theChar) ;
 
-    llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index) const;
+    llvm::Value* getCharArrayElement(llvm::Value* arr, llvm::Value* index) ;
 
-    llvm::Value* CreateStore(llvm::Value* value, llvm::Value* ptr) const;
+    llvm::Value* CreateStore(llvm::Value* value, llvm::Value* ptr) ;
 
-    llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) const;
+    llvm::Value* CreateAdd(llvm::Value* lhs, llvm::Value* rhs, const std::string& name) ;
 
-    [[nodiscard]] llvm::Value* generateCallReadCharFunction() const;
+    [[nodiscard]] llvm::Value* generateCallReadCharFunction() ;
 
-    Pointer allocateAndInitialize(llvm::Type* type, llvm::Value* value) const {
-        auto pointer = builder->CreateAlloca(type);
-        builder->CreateStore(value, pointer);
+    Pointer allocateAndInitialize(llvm::Type* type, llvm::Value* value) {
+        auto pointer = builder.CreateAlloca(type);
+        builder.CreateStore(value, pointer);
         return {type, pointer};
     }
 };
 
-CompilerState initCompilerState(const std::string& name, const std::string& targetTriple);
+inline std::unique_ptr<CompilerState> initCompilerState(std::string_view name, std::string_view targetTriple) {
+    auto platformDependent = getPlatformDependent(targetTriple);
+    auto state = std::make_unique<CompilerState>(name, targetTriple, platformDependent);
+
+    state->initClib();
+    state->generateReadCharFunction();
+    state->generateTapeDoublingFunction();
+    state->generateEntryPoint();
+    state->pushVariableHandlerStack();
+
+    return std::move(state);
+}
 
 
 #endif //YABF_CONTEXTBUILDERMODULE_H

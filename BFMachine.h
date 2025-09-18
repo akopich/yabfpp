@@ -45,15 +45,16 @@ public:
 
     void generateCallTapeDoublingFunction(llvm::Value* newIndex) const {
         std::vector<llvm::Value*> printArgs = {tapePtr.pointer, newIndex, tapeSizePtr.pointer};
-        state->builder->CreateCall(state->module->getFunction("doubleTapeIfNeeded"), printArgs);
+        state->builder.CreateCall(state->module.getFunction("doubleTapeIfNeeded"), printArgs);
     }
 };
 
 inline BFMachine createBFMachine(CompilerState* state, int initialTapeSize) {
-    auto tape = state->clib->generateCallCalloc(state->getConstInt(initialTapeSize));
+    auto tape = state->clib.generateCallCalloc(state->getConstInt(initialTapeSize));
 
-    auto pointer = state->allocateAndInitialize(state->builder->getInt32Ty(), state->getConstInt(0));
-    auto tapeSizePtr = state->allocateAndInitialize(state->builder->getInt32Ty(), state->getConstInt(initialTapeSize));
+    auto* int32ty = state->builder.getInt32Ty();
+    auto pointer = state->allocateAndInitialize(int32ty, state->getConstInt(0));
+    auto tapeSizePtr = state->allocateAndInitialize(int32ty, state->getConstInt(initialTapeSize));
     auto tapePtr = state->allocateAndInitialize(state->getInt8PtrTy(), tape);
 
     return {tapePtr, pointer, tapeSizePtr, state, initialTapeSize};

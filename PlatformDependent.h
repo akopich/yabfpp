@@ -6,7 +6,7 @@
 #define YABFPP_PLATFORMDEPENDENT_H
 
 #include <climits>
-#include <string>
+#include <string_view>
 #include <iostream>
 
 struct PlatformDependent {
@@ -14,7 +14,7 @@ struct PlatformDependent {
     bool isCharSigned;
 };
 
-inline PlatformDependent getPlatformDependent(const std::string& target) {
+inline PlatformDependent getPlatformDependent(std::string_view target) {
     static constexpr PlatformDependent kX86_64PCLinuxGNU {
         .eOF = -1,
         .isCharSigned = true

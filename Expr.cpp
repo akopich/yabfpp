@@ -15,12 +15,12 @@ void MovePtrExpr::generate(BFMachine& bfMachine) const {
     auto& state = *bfMachine.state;
     auto& builder = state.builder;
 
-    llvm::Value* stepValueI32 = builder->CreateIntCast(stepValueI8, builder->getInt32Ty(), true);
+    llvm::Value* stepValueI32 = builder.CreateIntCast(stepValueI8, builder.getInt32Ty(), true);
     auto newIndex = state.CreateAdd(index, stepValueI32, "move pointer");
 
     bfMachine.generateCallTapeDoublingFunction(newIndex);
 
-    builder->CreateStore(newIndex, bfMachine.pointer.pointer);
+    builder.CreateStore(newIndex, bfMachine.pointer.pointer);
 }
 
 MovePtrExpr::MovePtrExpr(std::unique_ptr<Int8Expr> steps) : steps(move(steps)) {}
@@ -40,7 +40,7 @@ void ReadExpr::generate(BFMachine& bfMachine) const {
 }
 
 void PrintExpr::generate(BFMachine& bfMachine) const {
-    bfMachine.state->clib->generateCallPutChar(bfMachine.getCurrentChar());
+    bfMachine.state->clib.generateCallPutChar(bfMachine.getCurrentChar());
 }
 
 void ListExpr::generate(BFMachine& bfMachine) const {
@@ -59,18 +59,18 @@ void LoopExpr::generate(BFMachine& bfMachine) const {
     llvm::BasicBlock* loopCondBB = state.createBasicBlock("loop cond");
     llvm::BasicBlock* loopBodyBB = state.createBasicBlock("loop body");
     llvm::BasicBlock* afterLoopBB = state.createBasicBlock("after loop");
-    builder->CreateBr(loopCondBB);
+    builder.CreateBr(loopCondBB);
 
-    builder->SetInsertPoint(loopCondBB);
-    auto cond = builder->CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
+    builder.SetInsertPoint(loopCondBB);
+    auto cond = builder.CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
                                       "check loop condition");
-    builder->CreateCondBr(cond, loopBodyBB, afterLoopBB);
+    builder.CreateCondBr(cond, loopBodyBB, afterLoopBB);
 
-    builder->SetInsertPoint(loopBodyBB);
+    builder.SetInsertPoint(loopBodyBB);
     body->generate(bfMachine);
-    builder->CreateBr(loopCondBB);
+    builder.CreateBr(loopCondBB);
 
-    builder->SetInsertPoint(afterLoopBB);
+    builder.SetInsertPoint(afterLoopBB);
 }
 
 LoopExpr::LoopExpr(std::unique_ptr<Expr> body) : body(std::move(body)) {}
@@ -78,7 +78,7 @@ LoopExpr::LoopExpr(std::unique_ptr<Expr> body) : body(std::move(body)) {}
 void WriteToVariable::generate(BFMachine& bfMachine) const {
     CompilerState* state = bfMachine.state;
     auto ptr = state->getVariableHandler().getVariablePtr(name);
-    state->builder->CreateStore(bfMachine.getCurrentChar(), ptr.pointer);
+    state->builder.CreateStore(bfMachine.getCurrentChar(), ptr.pointer);
 }
 
 WriteToVariable::WriteToVariable(std::string name) : name(std::move(name)) {}
@@ -106,13 +106,13 @@ ConstInt8Expr::ConstInt8Expr(char value) : value(value) {}
 llvm::Value* MinusInt8Expr::generate(BFMachine& bfMachine) const {
     auto beforeMinus = value->generate(bfMachine);
     CompilerState* state = bfMachine.state;
-    return state->builder->CreateMul(beforeMinus, state->getConstChar(-1));
+    return state->builder.CreateMul(beforeMinus, state->getConstChar(-1));
 }
 
 MinusInt8Expr::MinusInt8Expr(std::unique_ptr<Int8Expr> value) : value(move(value)) {}
 
 void PrintIntExpr::generate(BFMachine& bfMachine) const {
-    bfMachine.state->clib->generateCallPrintfInt(bfMachine.getCurrentChar());
+    bfMachine.state->clib.generateCallPrintfInt(bfMachine.getCurrentChar());
 }
 
 IfElse::IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr) : ifExpr(move(ifExpr)),
@@ -120,7 +120,7 @@ IfElse::IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr) : i
 
 void IfElse::generate(BFMachine& bfMachine) const {
     auto& state = *bfMachine.state;
-    auto& builder = *state.builder;
+    auto& builder = state.builder;
     auto cond = builder.CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
                                      "check if/else condition");
     llvm::BasicBlock* ifBodyBB = state.createBasicBlock("if branch body");
@@ -156,15 +156,15 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
     auto& builder = state->builder;
 
     state->pushVariableHandlerStack();
-    auto oldBB = builder->GetInsertBlock();
-    auto oldInsertPoint = builder->GetInsertPoint();
+    auto oldBB = builder.GetInsertBlock();
+    auto oldInsertPoint = builder.GetInsertPoint();
 
-    std::vector<llvm::Type*> argTypes(argumentNames.size(), builder->getInt8Ty());
+    std::vector<llvm::Type*> argTypes(argumentNames.size(), builder.getInt8Ty());
 
     llvm::Function* function = state->declareBFFunction(functionName, argTypes);
 
     llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
-    builder->SetInsertPoint(functionBody);
+    builder.SetInsertPoint(functionBody);
 
     for (const auto&[argValue, argName] : std::ranges::views::zip(function->args(), argumentNames)) {
         auto argPtr = state->getVariableHandler().getVariablePtr(argName);
@@ -181,7 +181,7 @@ void BFFunctionDeclaration::generate(BFMachine& bfMachine) const {
 
     state->popVariableHandlerStack();
     state->popFunctionStack();
-    builder->SetInsertPoint(oldBB, oldInsertPoint);
+    builder.SetInsertPoint(oldBB, oldInsertPoint);
 }
 
 void Return::generate(BFMachine& bfMachine) const {
@@ -189,17 +189,17 @@ void Return::generate(BFMachine& bfMachine) const {
     auto& builder = state->builder;
     llvm::Value* valueToReturn = bfMachine.getCurrentChar();
 
-    state->clib->generateCallFree(bfMachine.getTape());
+    state->clib.generateCallFree(bfMachine.getTape());
 
-    builder->CreateRet(valueToReturn);
+    builder.CreateRet(valueToReturn);
 
     // This is a hack. Everything added to the block after the ret instruction
     // is considered to be a new unnamed block, which is numbered and the numbering is shared between
     // the instructions and the unnamed blocks. Hence, we make the block named. And it is unreachable.
     // Ultimately, it will be eliminated, as BFFunctionDeclaration calls llvm::EliminateUnreachableBlocks.
-    builder->SetInsertPoint(state->createBasicBlock("dead code"));
+    builder.SetInsertPoint(state->createBasicBlock("dead code"));
     // every block needs to have a terminating instruction. 0 is arbitrary.
-    builder->CreateRet(state->getConstChar(0));
+    builder.CreateRet(state->getConstChar(0));
 }
 
 BFFunctionCall::BFFunctionCall(std::string functionName,
@@ -212,7 +212,7 @@ void BFFunctionCall::generate(BFMachine& bfMachine) const {
     std::transform(arguments.begin(), arguments.end(), std::back_inserter(argValues),
                    [&](auto expr) { return expr->generate(bfMachine); });
 
-    llvm::Value* returnValue = bfMachine.state->builder->CreateCall(bfMachine.state->module->getFunction(functionName),
+    llvm::Value* returnValue = bfMachine.state->builder.CreateCall(bfMachine.state->module.getFunction(functionName),
                                                                     argValues);
 
     bfMachine.setCurrentChar(returnValue);
