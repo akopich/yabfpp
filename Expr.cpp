@@ -208,12 +208,11 @@ BFFunctionCall::BFFunctionCall(std::string functionName,
           arguments(move(arguments)) {}
 
 void BFFunctionCall::generate(BFMachine& bfMachine) const {
-    std::vector<llvm::Value*> argValues;
-    std::transform(arguments.begin(), arguments.end(), std::back_inserter(argValues),
-                   [&](auto expr) { return expr->generate(bfMachine); });
+    auto argValues = arguments | std::ranges::views::transform([&](auto expr) { return expr->generate(bfMachine); }) 
+                               | std::ranges::to<std::vector>();
 
     llvm::Value* returnValue = bfMachine.state->builder.CreateCall(bfMachine.state->module.getFunction(functionName),
-                                                                    argValues);
+                                                                   argValues);
 
     bfMachine.setCurrentChar(returnValue);
 }
