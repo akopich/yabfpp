@@ -15,12 +15,12 @@ struct PlatformDependent {
 };
 
 inline PlatformDependent getPlatformDependent(const std::string& target) {
-    static constexpr PlatformDependent kX86_64PCLinuxGNU{
+    static constexpr PlatformDependent kX86_64PCLinuxGNU {
         .eOF = -1,
         .isCharSigned = true
     };
 
-    static constexpr PlatformDependent kDefaultPlatform{
+    static constexpr PlatformDependent kDefaultPlatform {
         .eOF = EOF,
         .isCharSigned = CHAR_MIN < 0
     };

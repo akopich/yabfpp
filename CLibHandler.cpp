@@ -13,7 +13,7 @@ void CLibHandler::generatePrintfInt() const {
 }
 
 void CLibHandler::generateCallPrintfInt(llvm::Value* theInt) const {
-    llvm::Value* formatStr = builder->CreateGlobalStringPtr("%d\n");
+    llvm::Value* formatStr = builder->CreateGlobalString("%d\n");
     std::vector<llvm::Value*> printArgs = {formatStr, theInt};
     builder->CreateCall(module->getFunction("printf"), printArgs);
 }
