@@ -72,7 +72,7 @@ int main(int ac, char* av[]) {
     BFMachine bfMachine = createBFMachine(state.get(), initialTapeSize);
     Parser parser;
     auto expr = parser.parse(src);
-    expr->generate(bfMachine);
+    expr.generate(bfMachine);
     state->finalizeAndPrintIRtoFile(outPath);
     return 0;
 }

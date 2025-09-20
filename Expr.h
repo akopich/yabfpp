@@ -3,167 +3,341 @@
 //
 
 #include "BFMachine.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include <any>
+#include <utility>
 
 #ifndef YABF_EXPR_H
 #define YABF_EXPR_H
 
 
 class Expr {
+private:
+    using GenPtr = void(*)(const std::any& , BFMachine&);
 public:
-    virtual void generate(BFMachine& bfMachine) const = 0;
+    template <typename T, typename ... Args>
+    Expr(std::in_place_type_t<T> tag, Args&&... args ): 
+        obj(tag, std::forward<Args>(args)...), 
+        genPtr(+[](const std::any& obj, BFMachine& bfm) { std::any_cast<T>(obj).generate(bfm); }) {
+    }
+    void generate(BFMachine& bfMachine) const {
+        std::invoke(genPtr, obj, bfMachine);
+    }
+private: 
+    GenPtr genPtr;
+    std::any obj;
 
-    virtual ~Expr();
 };
+
+template <typename T, typename ... Args>
+auto mkExpr(Args&&... args) {
+    return Expr{std::in_place_type<T>, std::forward<Args>(args)...};
+}
 
 class Int8Expr {
+private:
+    using GenPtr = llvm::Value* (*)(const std::any& , BFMachine&);
 public:
-    virtual llvm::Value* generate(BFMachine& bfMachine) const = 0;
-
-    virtual ~Int8Expr() = default;
+    template <typename T, typename ... Args>
+    Int8Expr(std::in_place_type_t<T> tag, Args&&... args ): 
+        obj(tag, std::forward<Args>(args)...), 
+        genPtr(+[](const std::any& obj, BFMachine& bfm) { return std::any_cast<T>(obj).generate(bfm); }) {
+    }
+    llvm::Value* generate(BFMachine& bfMachine) const {
+        return std::invoke(genPtr, obj, bfMachine);
+    }
+private: 
+    GenPtr genPtr;
+    std::any obj;
 };
 
-class MinusInt8Expr : public Int8Expr {
-    std::unique_ptr<Int8Expr> value;
-public:
-    explicit MinusInt8Expr(std::unique_ptr<Int8Expr> value);
+template <typename T, typename ... Args>
+auto mkInt8Expr(Args&&... args) {
+    return Int8Expr{std::in_place_type<T>, std::forward<Args>(args)...};
+}
 
-    llvm::Value* generate(BFMachine& bfMachine) const override;
+class MinusInt8Expr {
+    Int8Expr value;
+public:
+    explicit MinusInt8Expr(Int8Expr value) : value(std::move(value)) {}
+
+    llvm::Value* generate(BFMachine& bfMachine)  {
+        auto beforeMinus = value.generate(bfMachine);
+        CompilerState* state = bfMachine.state;
+        return state->builder.CreateMul(beforeMinus, state->getConstChar(-1));
+    }
 };
 
-class VariableInt8Expr : public Int8Expr {
+class VariableInt8Expr {
 private:
     std::string name;
 public:
-    explicit VariableInt8Expr(std::string name);
+    explicit VariableInt8Expr(std::string name) : name(std::move(name)) {}
 
-    llvm::Value* generate(BFMachine& bfMachine) const override;
+    llvm::Value* generate(BFMachine& bfMachine) {
+        return bfMachine.state->getVariableHandler().getVariableValue(name);
+    }
 };
 
-class ConstInt8Expr : public Int8Expr {
+class ConstInt8Expr {
 private:
     char value;
 public:
-    explicit ConstInt8Expr(char value);
+    explicit ConstInt8Expr(char value) : value(value) { }
 
-    llvm::Value* generate(BFMachine& bfMachine) const override;
+    llvm::Value* generate(BFMachine& bfMachine) const {
+        return bfMachine.state->getConstChar(value);
+    }
 };
 
-class MovePtrExpr : public Expr {
+class MovePtrExpr {
 private:
-    std::unique_ptr<Int8Expr> steps;
+    Int8Expr steps;
 public:
-    explicit MovePtrExpr(std::unique_ptr<Int8Expr> steps);
+    explicit MovePtrExpr(Int8Expr steps) : steps(std::move(steps)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        llvm::Value* index = bfMachine.getIndex();
+        llvm::Value* stepValueI8 = steps.generate(bfMachine);
+
+        auto& state = *bfMachine.state;
+        auto& builder = state.builder;
+
+        llvm::Value* stepValueI32 = builder.CreateIntCast(stepValueI8, builder.getInt32Ty(), true);
+        auto newIndex = state.CreateAdd(index, stepValueI32, "move pointer");
+
+        bfMachine.generateCallTapeDoublingFunction(newIndex);
+
+        builder.CreateStore(newIndex, bfMachine.pointer.pointer);
+    }
 };
 
-class AddExpr : public Expr {
+class AddExpr {
 private:
-    std::unique_ptr<Int8Expr> add;
+    Int8Expr add;
 public:
-    explicit AddExpr(std::unique_ptr<Int8Expr> add);
+    explicit AddExpr(Int8Expr add) : add(std::move(add)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        llvm::Value* theChar = bfMachine.getCurrentChar();
+        llvm::Value* newChar = bfMachine.state->CreateAdd(theChar, add.generate(bfMachine), "add char");
+        bfMachine.setCurrentChar(newChar);
+    }
 };
 
-class ReadExpr : public Expr {
+class ReadExpr {
 public:
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        llvm::Value* readChar = bfMachine.state->generateCallReadCharFunction();
+        bfMachine.setCurrentChar(readChar);
+    }
 };
 
-class PrintExpr : public Expr {
+class PrintExpr {
 public:
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        bfMachine.state->clib.generateCallPutChar(bfMachine.getCurrentChar());
+    }
 };
 
-class PrintIntExpr : public Expr {
+class PrintIntExpr {
 public:
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        bfMachine.state->clib.generateCallPrintfInt(bfMachine.getCurrentChar());
+    }
 };
 
 
-class LoopExpr : public Expr {
+class LoopExpr {
 private:
-    std::unique_ptr<Expr> body;
+    Expr body;
 public:
-    explicit LoopExpr(std::unique_ptr<Expr> body);
+    explicit LoopExpr(Expr body): body(std::move(body)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const  {
+        auto& state = *bfMachine.state;
+        auto& builder = state.builder;
+        llvm::BasicBlock* loopCondBB = state.createBasicBlock("loop cond");
+        llvm::BasicBlock* loopBodyBB = state.createBasicBlock("loop body");
+        llvm::BasicBlock* afterLoopBB = state.createBasicBlock("after loop");
+        builder.CreateBr(loopCondBB);
+
+        builder.SetInsertPoint(loopCondBB);
+        auto cond = builder.CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
+                "check loop condition");
+        builder.CreateCondBr(cond, loopBodyBB, afterLoopBB);
+
+        builder.SetInsertPoint(loopBodyBB);
+        body.generate(bfMachine);
+        builder.CreateBr(loopCondBB);
+
+        builder.SetInsertPoint(afterLoopBB);
+    }
 };
 
-class ListExpr : public Expr {
+class ListExpr {
 private:
-    std::vector<std::shared_ptr<Expr>> v;
+    std::vector<Expr> v;
 
 public:
-    explicit ListExpr(std::vector<std::shared_ptr<Expr>> v);
+    explicit ListExpr(std::vector<Expr> v) : v(std::move(v)) {}
 
-    ListExpr(const ListExpr& e) = delete;
+  //  ListExpr(const ListExpr& e) = delete; TODO disable copy, enabling for now for std::any storage
+  //  ListExpr& operator=(const ListExpr& e) = delete;
 
-    ListExpr& operator=(const ListExpr& e) = delete;
-
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        for (auto& e : v) {
+            e.generate(bfMachine);
+        }
+    }
 };
 
-class WriteToVariable : public Expr {
+inline Expr getNoOpExpr() {
+    return Expr{std::in_place_type<ListExpr>, std::vector<Expr>{}};
+}
+
+class WriteToVariable {
 private:
     std::string name;
 public:
-    explicit WriteToVariable(std::string name);
+    explicit WriteToVariable(std::string name) : name(std::move(name)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        CompilerState* state = bfMachine.state;
+        auto ptr = state->getVariableHandler().getVariablePtr(name);
+        state->builder.CreateStore(bfMachine.getCurrentChar(), ptr.pointer);
+    }
 };
 
-class AssignExpressionValueToTheCurrentCell : public Expr {
+class AssignExpressionValueToTheCurrentCell {
 private:
-    std::unique_ptr<Int8Expr> variable;
+    Int8Expr variable;
 public:
-    explicit AssignExpressionValueToTheCurrentCell(std::unique_ptr<Int8Expr> name);
+    explicit AssignExpressionValueToTheCurrentCell(Int8Expr variable): variable(std::move(variable)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        bfMachine.setCurrentChar(variable.generate(bfMachine));
+    }
 };
 
 
-class IfElse : public Expr {
+class IfElse {
 private:
-    std::unique_ptr<Expr> ifExpr;
-    std::unique_ptr<Expr> elseExpr;
+    Expr ifExpr;
+    Expr elseExpr;
 public:
-    IfElse(std::unique_ptr<Expr> ifExpr, std::unique_ptr<Expr> elseExpr);
+    IfElse(Expr ifExpr, Expr elseExpr) : ifExpr(std::move(ifExpr)), elseExpr(std::move(elseExpr)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        auto& state = *bfMachine.state;
+        auto& builder = state.builder;
+        auto cond = builder.CreateICmpNE(bfMachine.getCurrentChar(), state.getConstChar(0),
+                "check if/else condition");
+        llvm::BasicBlock* ifBodyBB = state.createBasicBlock("if branch body");
+        llvm::BasicBlock* elseBodyBB = state.createBasicBlock("else branch body");
+        llvm::BasicBlock* afterBodyBB = state.createBasicBlock("after if/else block");
+
+        builder.CreateCondBr(cond, ifBodyBB, elseBodyBB);
+
+        builder.SetInsertPoint(ifBodyBB);
+        ifExpr.generate(bfMachine);
+        builder.CreateBr(afterBodyBB);
+
+        builder.SetInsertPoint(elseBodyBB);
+        elseExpr.generate(bfMachine);
+        builder.CreateBr(afterBodyBB);
+
+        builder.SetInsertPoint(afterBodyBB);
+    }
 };
 
 
-std::unique_ptr<Expr> getNoOpExpr();
+class Return {
+public:
+    void generate(BFMachine& bfMachine) const  {
+        auto* state = bfMachine.state;
+        auto& builder = state->builder;
+        llvm::Value* valueToReturn = bfMachine.getCurrentChar();
 
+        state->clib.generateCallFree(bfMachine.getTape());
 
-class BFFunctionDeclaration : public Expr {
+        builder.CreateRet(valueToReturn);
+
+        // This is a hack. Everything added to the block after the ret instruction
+        // is considered to be a new unnamed block, which is numbered and the numbering is shared between
+        // the instructions and the unnamed blocks. Hence, we make the block named. And it is unreachable.
+        // Ultimately, it will be eliminated, as BFFunctionDeclaration calls llvm::EliminateUnreachableBlocks.
+        builder.SetInsertPoint(state->createBasicBlock("dead code"));
+        // every block needs to have a terminating instruction. 0 is arbitrary.
+        builder.CreateRet(state->getConstChar(0));
+    }
+};
+
+class BFFunctionDeclaration {
 private:
     std::string functionName;
     std::vector<std::string> argumentNames;
-    std::unique_ptr<Expr> body;
+    Expr body;
 public:
     BFFunctionDeclaration(std::string functionName,
-                          std::vector<std::string> variableNames,
-                          std::unique_ptr<Expr> body);
+            std::vector<std::string> variableNames,
+            Expr body): functionName(std::move(functionName)),
+    argumentNames(std::move(variableNames)),
+    body(std::move(body)) {}
 
-    void generate(BFMachine& bfMachine) const override;
+    void generate(BFMachine& bfMachine) const {
+        CompilerState* state = bfMachine.state;
+        auto& builder = state->builder;
+
+        state->pushVariableHandlerStack();
+        auto oldBB = builder.GetInsertBlock();
+        auto oldInsertPoint = builder.GetInsertPoint();
+
+        std::vector<llvm::Type*> argTypes(argumentNames.size(), builder.getInt8Ty());
+
+        llvm::Function* function = state->declareBFFunction(functionName, argTypes);
+
+        llvm::BasicBlock* functionBody = state->createBasicBlock(functionName);
+        builder.SetInsertPoint(functionBody);
+
+        for (const auto&[argValue, argName] : std::ranges::views::zip(function->args(), argumentNames)) {
+            auto argPtr = state->getVariableHandler().getVariablePtr(argName);
+            state->CreateStore(&argValue, argPtr.pointer);
+        }
+
+        BFMachine localBFMachine = createBFMachine(state, bfMachine.initialTapeSize);
+        body.generate(localBFMachine);
+
+        Return defaultReturn;
+        defaultReturn.generate(localBFMachine);
+
+        llvm::EliminateUnreachableBlocks(*function);
+
+        state->popVariableHandlerStack();
+        state->popFunctionStack();
+        builder.SetInsertPoint(oldBB, oldInsertPoint);
+    }
 };
 
-class BFFunctionCall : public Expr {
+class BFFunctionCall  {
 private:
     std::string functionName;
-    std::vector<std::shared_ptr<Int8Expr>> arguments;
+    std::vector<Int8Expr> arguments;
 public:
-    BFFunctionCall(std::string functionName, std::vector<std::shared_ptr<Int8Expr>> arguments);
+    BFFunctionCall(std::string functionName, std::vector<Int8Expr> arguments)
+        : functionName(std::move(functionName)),
+        arguments(std::move(arguments)) {}
 
-    void generate(BFMachine& bfMachine) const override;
-};
+    void generate(BFMachine& bfMachine) const {
 
-class Return : public Expr {
-public:
-    void generate(BFMachine& bfMachine) const override;
+        auto argValues = arguments | std::ranges::views::transform([&](auto expr) { return expr.generate(bfMachine); }) 
+            | std::ranges::to<std::vector>();
+
+        llvm::Value* returnValue = bfMachine.state->builder.CreateCall(bfMachine.state->module.getFunction(functionName),
+                argValues);
+
+        bfMachine.setCurrentChar(returnValue);
+    }
 };
 
 

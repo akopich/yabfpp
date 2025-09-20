@@ -2,11 +2,9 @@
 // Created by valerij on 8/1/21.
 //
 
-#include <iostream>
 #include <cctype>
 #include <memory>
 #include <vector>
-#include <set>
 
 
 #include "Expr.h"
@@ -23,12 +21,12 @@ void checkBlockClosed(Source::Iterator& i, char expected) {
     ++i;
 }
 
-std::unique_ptr<Expr> Parser::parseExpr(Source::Iterator& i) {
+Expr Parser::parseExpr(Source::Iterator& i) {
     char c = *i;
     i++;
     switch (c) {
         case '\\':
-            return std::make_unique<Return>();
+            return mkExpr<Return>();
         case '@':
             return parseBFFunctionDefinition(i);
         case '$':
@@ -36,18 +34,18 @@ std::unique_ptr<Expr> Parser::parseExpr(Source::Iterator& i) {
         case '{':
             return parseIfElseExpr(i);
         case '^':
-            return std::make_unique<WriteToVariable>(parseVariableName(i));
+            return mkExpr<WriteToVariable>(parseVariableName(i));
         case '_':
-            return std::make_unique<AssignExpressionValueToTheCurrentCell>(parseInt8Expr(i, false));
+            return mkExpr<AssignExpressionValueToTheCurrentCell>(parseInt8Expr(i, false));
         case '+':
         case '-':
             return parseAddExpr(i, c);
         case '.':
-            return std::make_unique<PrintExpr>();
+            return mkExpr<PrintExpr>();
         case ',':
-            return std::make_unique<ReadExpr>();
+            return mkExpr<ReadExpr>();
         case '*':
-            return std::make_unique<PrintIntExpr>();
+            return mkExpr<PrintIntExpr>();
         case '<':
         case '>':
             return parseMovePtrExpr(i, c);
@@ -58,42 +56,42 @@ std::unique_ptr<Expr> Parser::parseExpr(Source::Iterator& i) {
     }
 }
 
-std::unique_ptr<Expr> Parser::parseLoopExpr(Source::Iterator& i) {
+Expr Parser::parseLoopExpr(Source::Iterator& i) {
     auto body = parse(i);
     checkBlockClosed(i, ']');
-    return std::make_unique<LoopExpr>(move(body));
+    return mkExpr<LoopExpr>(std::move(body));
 }
 
-std::unique_ptr<Expr> Parser::parseMovePtrExpr(Source::Iterator& i, char leadingChar) {
+Expr Parser::parseMovePtrExpr(Source::Iterator& i, char leadingChar) {
     auto step = parseInt8Expr(i, true);
     if (leadingChar == '<') {
-        step = std::make_unique<MinusInt8Expr>(move(step));
+        step = mkInt8Expr<MinusInt8Expr>(std::move(step));
     }
-    return std::make_unique<MovePtrExpr>(move(step));
+    return mkExpr<MovePtrExpr>(std::move(step));
 }
 
-std::unique_ptr<Expr> Parser::parseAddExpr(Source::Iterator& i, char leadingChar) {
+Expr Parser::parseAddExpr(Source::Iterator& i, char leadingChar) {
     auto add = parseInt8Expr(i, true);
     if (leadingChar == '-') {
-        add = std::make_unique<MinusInt8Expr>(move(add));
+        add = mkInt8Expr<MinusInt8Expr>(std::move(add));
     }
-    return std::make_unique<AddExpr>(move(add));
+    return mkExpr<AddExpr>(std::move(add));
 }
 
-std::unique_ptr<Expr> Parser::parseIfElseExpr(Source::Iterator& i) {
+Expr Parser::parseIfElseExpr(Source::Iterator& i) {
     auto ifExpr = parse(i);
     checkBlockClosed(i, '}');
     if (*i == '{') {
         i++;
         auto elseExpr = parse(i);
         checkBlockClosed(i, '}');
-        return std::make_unique<IfElse>(move(ifExpr), move(elseExpr));
+        return mkExpr<IfElse>(std::move(ifExpr), std::move(elseExpr));
     }
 
-    return std::make_unique<IfElse>(move(ifExpr), getNoOpExpr());
+    return mkExpr<IfElse>(std::move(ifExpr), getNoOpExpr());
 }
 
-std::unique_ptr<Expr> Parser::parseBFFunctionCall(Source::Iterator& i) {
+Expr Parser::parseBFFunctionCall(Source::Iterator& i) {
     std::string functionName = parseVariableName(i);
     auto functionIt = functionName2argNumber.find(functionName);
     if (functionIt == functionName2argNumber.end()) {
@@ -105,27 +103,26 @@ std::unique_ptr<Expr> Parser::parseBFFunctionCall(Source::Iterator& i) {
                                    "Function " + functionName + " takes " + std::to_string(functionIt->second) +
                                    " arguments, " + std::to_string(argExprs.size()) + " supplied");
     }
-    return std::make_unique<BFFunctionCall>(functionName, argExprs);
+    return mkExpr<BFFunctionCall>(functionName, argExprs);
 }
 
-std::unique_ptr<Expr> Parser::parseBFFunctionDefinition(Source::Iterator& i) {
+Expr Parser::parseBFFunctionDefinition(Source::Iterator& i) {
     std::string functionName = parseVariableName(i);
     std::vector<std::string> argNames = parseFunctionArgumentList(i);
     functionName2argNumber[functionName] = argNames.size();
     checkBlockClosed(i, '{');
     auto body = parse(i);
     checkBlockClosed(i, '}');
-    return std::make_unique<BFFunctionDeclaration>(functionName, argNames, move(body));
+    return mkExpr<BFFunctionDeclaration>(functionName, argNames, std::move(body));
 }
 
-std::vector<std::shared_ptr<Int8Expr>> Parser::parseCallFunctionArgumentList(Source::Iterator& i) {
+std::vector<Int8Expr> Parser::parseCallFunctionArgumentList(Source::Iterator& i) {
     if (*i != '(')
         throw SyntaxErrorException(i, "opening bracket expected");
     ++i;
-    std::vector<std::shared_ptr<Int8Expr>> arguments;
+    std::vector<Int8Expr> arguments;
     while (*i != ')') {
-        auto argument = parseInt8Expr(i, false);
-        arguments.push_back(move(argument));
+        arguments.emplace_back(parseInt8Expr(i, false));
         if (*i != ',' && *i != ')') {
             throw SyntaxErrorException(i, "a comma, a closing bracket, variable name or an integer literal");
         }
@@ -161,30 +158,30 @@ std::string Parser::parseIntLiteral(Source::Iterator& i) {
     return parseWithPredicate(i, isdigit);
 }
 
-std::unique_ptr<Expr> Parser::parse(Source::Iterator& i) {
-    std::vector<std::shared_ptr<Expr>> v;
+Expr Parser::parse(Source::Iterator& i) {
+    std::vector<Expr> v;
     while (!i.isEnd() && *i != ']' && *i != '}') {
-        v.push_back(move(parseExpr(i)));
+        v.push_back(std::move(parseExpr(i)));
     }
-    return std::make_unique<ListExpr>(v);
+    return mkExpr<ListExpr>(v);
 }
 
-std::unique_ptr<Int8Expr> Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
+Int8Expr Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
     std::string varname = parseVariableName(i);
     if (!varname.empty())
-        return std::make_unique<VariableInt8Expr>(varname);
+        return mkInt8Expr<VariableInt8Expr>(varname);
 
     std::string intLiteral = parseIntLiteral(i);
     if (!intLiteral.empty())
-        return std::make_unique<ConstInt8Expr>(std::stoi(intLiteral));
+        return mkInt8Expr<ConstInt8Expr>(std::stoi(intLiteral));
 
     if (defaultOneAllowed)
-        return std::make_unique<ConstInt8Expr>(1);
+        return mkInt8Expr<ConstInt8Expr>(1);
 
     throw SyntaxErrorException(i, "a variable name or an integer literal is expected");
 }
 
-std::unique_ptr<Expr> Parser::parse(const Source& src) {
+Expr Parser::parse(const Source& src) {
     functionName2argNumber.clear();
     auto i = src.begin();
     return parse(i);
