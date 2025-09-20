@@ -10,51 +10,48 @@
 #ifndef YABF_EXPR_H
 #define YABF_EXPR_H
 
-
-class Expr {
-private:
-    using GenPtr = void(*)(const std::any& , BFMachine&);
+namespace detail{
+template <typename R>
+class ExprBase {
 public:
+    template <typename T>
+    static auto mkGenPtr() {
+        return +[](const std::any& obj, BFMachine& bfm) { return std::any_cast<T>(obj).generate(bfm); };
+    }
     template <typename T, typename ... Args>
-    Expr(std::in_place_type_t<T> tag, Args&&... args ): 
+    ExprBase(std::in_place_type_t<T> tag, Args&&... args ): 
         obj(tag, std::forward<Args>(args)...), 
-        genPtr(+[](const std::any& obj, BFMachine& bfm) { std::any_cast<T>(obj).generate(bfm); }) {
+        genPtr(mkGenPtr<T>()) {
     }
-    void generate(BFMachine& bfMachine) const {
-        std::invoke(genPtr, obj, bfMachine);
-    }
-private: 
-    GenPtr genPtr;
-    std::any obj;
-
-};
-
-template <typename T, typename ... Args>
-auto mkExpr(Args&&... args) {
-    return Expr{std::in_place_type<T>, std::forward<Args>(args)...};
-}
-
-class Int8Expr {
-private:
-    using GenPtr = llvm::Value* (*)(const std::any& , BFMachine&);
-public:
-    template <typename T, typename ... Args>
-    Int8Expr(std::in_place_type_t<T> tag, Args&&... args ): 
-        obj(tag, std::forward<Args>(args)...), 
-        genPtr(+[](const std::any& obj, BFMachine& bfm) { return std::any_cast<T>(obj).generate(bfm); }) {
-    }
-    llvm::Value* generate(BFMachine& bfMachine) const {
+    R generate(BFMachine& bfMachine) const {
         return std::invoke(genPtr, obj, bfMachine);
     }
+
 private: 
+    using GenPtr = R(*)(const std::any& , BFMachine&);
     GenPtr genPtr;
     std::any obj;
 };
 
-template <typename T, typename ... Args>
-auto mkInt8Expr(Args&&... args) {
-    return Int8Expr{std::in_place_type<T>, std::forward<Args>(args)...};
+template <typename T>
+class TypeTag{
+    using Type = T;
+};
+
+inline auto mkExprBase = []<typename Derived, typename T, typename ... Args>(TypeTag<Derived>, std::in_place_type_t<T> tag, Args&&... args) {
+    return Derived{{tag, std::forward<Args>(args)...}};
+};
 }
+
+class Expr : public detail::ExprBase<void> {};
+
+template <typename T>
+auto mkExpr = std::bind_front(detail::mkExprBase, detail::TypeTag<Expr>{}, std::in_place_type<T>);
+
+class Int8Expr : public detail::ExprBase<llvm::Value*> {};
+
+template <typename T>
+auto mkInt8Expr = std::bind_front(detail::mkExprBase, detail::TypeTag<Int8Expr>{}, std::in_place_type<T>);
 
 class MinusInt8Expr {
     Int8Expr value;
@@ -193,7 +190,7 @@ public:
 };
 
 inline Expr getNoOpExpr() {
-    return Expr{std::in_place_type<ListExpr>, std::vector<Expr>{}};
+    return mkExpr<ListExpr>( std::vector<Expr>{});
 }
 
 class WriteToVariable {
