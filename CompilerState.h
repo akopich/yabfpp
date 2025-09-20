@@ -35,7 +35,7 @@ private:
 
     llvm::LLVMContext context;
     PlatformDependent platformDependent;
-    std::stack<std::shared_ptr<VariableHandler>> variableHandlerStack;
+    std::stack<VariableHandler> variableHandlerStack;
 
     std::stack<llvm::Function*> functionStack;
 

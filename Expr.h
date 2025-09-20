@@ -166,4 +166,5 @@ public:
     void generate(BFMachine& bfMachine) const override;
 };
 
+
 #endif //YABF_EXPR_H

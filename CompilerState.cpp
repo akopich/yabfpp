@@ -127,7 +127,7 @@ void CompilerState::finalizeAndPrintIRtoFile(const std::string& outPath)  {
 
 
 VariableHandler& CompilerState::getVariableHandler() {
-    return *variableHandlerStack.top();
+    return variableHandlerStack.top();
 }
 
 llvm::Value* CompilerState::CreateStore(llvm::Value* value, llvm::Value* ptr)  {
@@ -135,7 +135,7 @@ llvm::Value* CompilerState::CreateStore(llvm::Value* value, llvm::Value* ptr)  {
 }
 
 void CompilerState::pushVariableHandlerStack() {
-    variableHandlerStack.emplace(std::make_shared<VariableHandler>(&builder));
+    variableHandlerStack.emplace(&builder);
 }
 
 void CompilerState::popVariableHandlerStack() {
