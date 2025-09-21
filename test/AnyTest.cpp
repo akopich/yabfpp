@@ -5,6 +5,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
+#include <boost/mpl/list.hpp>
 
 using namespace boost::unit_test;
 
@@ -24,14 +25,17 @@ struct S {
 
 inline constexpr int kInt = 13;
 
-using Storage = detail::StaticStorage<25>;
+using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, 25>;
+using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs, 25>;
 
-BOOST_AUTO_TEST_CASE(canInstantiate) {
+using StorageTypes = boost::mpl::list<Storage1, Storage2>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiate, Storage, StorageTypes) {
     {
         Storage storage(S{kInt});
-        BOOST_CHECK(storage.get<S>().i == kInt);
+        BOOST_CHECK(get<S>(storage).i == kInt);
         Storage otherStorage = std::move(storage);
-        BOOST_CHECK(otherStorage.get<S>().i == kInt);
+        BOOST_CHECK(get<S>(otherStorage).i == kInt);
         BOOST_CHECK(S::cnt == 2);
     }
 
@@ -39,7 +43,7 @@ BOOST_AUTO_TEST_CASE(canInstantiate) {
         Storage storage(S{kInt});
         {
             Storage otherStorage = std::move(storage);
-            BOOST_CHECK(otherStorage.get<S>().i == kInt);
+            BOOST_CHECK(get<S>(otherStorage).i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
@@ -47,12 +51,12 @@ BOOST_AUTO_TEST_CASE(canInstantiate) {
     BOOST_CHECK(S::cnt == 0);
 }
 
-BOOST_AUTO_TEST_CASE(canMove) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canMove, Storage, StorageTypes) {
     {
         Storage storage(S{kInt});
         {
             Storage otherStorage = std::move(storage);
-            BOOST_CHECK(otherStorage.get<S>().i == kInt);
+            BOOST_CHECK(get<S>(otherStorage).i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
@@ -60,13 +64,13 @@ BOOST_AUTO_TEST_CASE(canMove) {
     BOOST_CHECK(S::cnt == 0);
 }
 
-BOOST_AUTO_TEST_CASE(canMoveAssign) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canMoveAssign, Storage, StorageTypes) {
     {
         Storage storage(S{kInt});
         {
             Storage otherStorage(S{42});
             otherStorage = std::move(storage);
-            BOOST_CHECK(otherStorage.get<S>().i == kInt);
+            BOOST_CHECK(get<S>(otherStorage).i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
