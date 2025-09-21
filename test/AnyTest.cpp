@@ -10,10 +10,11 @@ using namespace boost::unit_test;
 
 struct S {
     std::array<char, 15> payload;
+    int i;
     inline static int cnt = 0;
-    S() {  cnt++; }
-    S(S&&) { cnt++; }
-    S& operator=(S&&) { cnt++; return *this; }
+    S(int i): i(i) {  cnt++; }
+    S(S&& other): i(other.i) { cnt++; }
+    S& operator=(S&& other) { i = other.i; cnt++; return *this; }
     S(S&) = delete;
     S& operator=(S&) = delete;
     ~S() {
@@ -21,19 +22,24 @@ struct S {
     }
 };
 
+inline constexpr int kInt = 13;
+
+using Storage = detail::StaticStorage<25>;
+
 BOOST_AUTO_TEST_CASE(canInstantiate) {
     {
-        using Storage = detail::StaticStorage<25>;
-        Storage storage(S{});
+        Storage storage(S{kInt});
+        BOOST_CHECK(storage.get<S>().i == kInt);
         Storage otherStorage = std::move(storage);
+        BOOST_CHECK(otherStorage.get<S>().i == kInt);
         BOOST_CHECK(S::cnt == 2);
     }
 
     {
-        using Storage = detail::StaticStorage<25>;
-        Storage storage(S{});
+        Storage storage(S{kInt});
         {
             Storage otherStorage = std::move(storage);
+            BOOST_CHECK(otherStorage.get<S>().i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
@@ -43,10 +49,10 @@ BOOST_AUTO_TEST_CASE(canInstantiate) {
 
 BOOST_AUTO_TEST_CASE(canMove) {
     {
-        using Storage = detail::StaticStorage<25>;
-        Storage storage(S{});
+        Storage storage(S{kInt});
         {
             Storage otherStorage = std::move(storage);
+            BOOST_CHECK(otherStorage.get<S>().i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
@@ -56,11 +62,11 @@ BOOST_AUTO_TEST_CASE(canMove) {
 
 BOOST_AUTO_TEST_CASE(canMoveAssign) {
     {
-        using Storage = detail::StaticStorage<25>;
-        Storage storage(S{});
+        Storage storage(S{kInt});
         {
-            Storage otherStorage(S{});
+            Storage otherStorage(S{42});
             otherStorage = std::move(storage);
+            BOOST_CHECK(otherStorage.get<S>().i == kInt);
         }
         BOOST_CHECK(S::cnt == 1);
     }
