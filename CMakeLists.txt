@@ -30,5 +30,8 @@ find_package(Boost 1.76 COMPONENTS program_options REQUIRED)
 add_executable(yabfpp main.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxErrorException.cpp SyntaxErrorException.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h)
 target_link_libraries(yabfpp ${Boost_LIBRARIES})
 
-add_executable(test Source.cpp Source.h test/SourceTest.cpp)
-target_link_libraries(test ${Boost_LIBRARIES})
+add_executable(SourceTest Source.cpp Source.h test/SourceTest.cpp)
+target_link_libraries(SourceTest ${Boost_LIBRARIES})
+
+add_executable(AnyTest Any.h test/AnyTest.cpp)
+target_link_libraries(AnyTest ${Boost_LIBRARIES})
