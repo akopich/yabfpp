@@ -103,7 +103,7 @@ Expr Parser::parseBFFunctionCall(Source::Iterator& i) {
                                    "Function " + functionName + " takes " + std::to_string(functionIt->second) +
                                    " arguments, " + std::to_string(argExprs.size()) + " supplied");
     }
-    return mkExpr<BFFunctionCall>(functionName, argExprs);
+    return mkExpr<BFFunctionCall>(functionName, std::move(argExprs));
 }
 
 Expr Parser::parseBFFunctionDefinition(Source::Iterator& i) {
@@ -163,7 +163,7 @@ Expr Parser::parse(Source::Iterator& i) {
     while (!i.isEnd() && *i != ']' && *i != '}') {
         v.push_back(std::move(parseExpr(i)));
     }
-    return mkExpr<ListExpr>(v);
+    return mkExpr<ListExpr>(std::move(v));
 }
 
 Int8Expr Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {

@@ -2,6 +2,7 @@
 // Created by valerij on 7/30/21.
 //
 
+#include "Any.h"
 #include "BFMachine.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <any>
@@ -14,9 +15,11 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
+    using Erased = std::any;
+
     template <typename T>
     static auto mkGenPtr() {
-        return +[](const std::any& obj, BFMachine& bfm) { return std::any_cast<T>(obj).generate(bfm); };
+        return +[](const Erased& obj, BFMachine& bfm) { return any_cast<T>(obj).generate(bfm); };
     }
     template <typename T, typename ... Args>
     ExprBase(std::in_place_type_t<T> tag, Args&&... args ): 
@@ -28,9 +31,9 @@ public:
     }
 
 private: 
-    using GenPtr = R(*)(const std::any& , BFMachine&);
+    using GenPtr = R(*)(const Erased& , BFMachine&);
     GenPtr genPtr;
-    std::any obj;
+    Erased obj;
 };
 
 template <typename T>
@@ -177,10 +180,7 @@ private:
     std::vector<Expr> v;
 
 public:
-    explicit ListExpr(std::vector<Expr> v) : v(std::move(v)) {}
-
-  //  ListExpr(const ListExpr& e) = delete; TODO disable copy, enabling for now for std::any storage
-  //  ListExpr& operator=(const ListExpr& e) = delete;
+    explicit ListExpr(std::vector<Expr>&& v) : v(std::move(v)) {}
 
     void generate(BFMachine& bfMachine) const {
         for (auto& e : v) {
@@ -216,7 +216,6 @@ public:
         bfMachine.setCurrentChar(variable.generate(bfMachine));
     }
 };
-
 
 class IfElse {
 private:
@@ -321,13 +320,13 @@ private:
     std::string functionName;
     std::vector<Int8Expr> arguments;
 public:
-    BFFunctionCall(std::string functionName, std::vector<Int8Expr> arguments)
+    BFFunctionCall(std::string functionName, std::vector<Int8Expr>&& arguments)
         : functionName(std::move(functionName)),
         arguments(std::move(arguments)) {}
 
     void generate(BFMachine& bfMachine) const {
 
-        auto argValues = arguments | std::ranges::views::transform([&](auto expr) { return expr.generate(bfMachine); }) 
+        auto argValues = arguments | std::ranges::views::transform([&](auto& expr) { return expr.generate(bfMachine) ; }) 
             | std::ranges::to<std::vector>();
 
         llvm::Value* returnValue = bfMachine.state->builder.CreateCall(bfMachine.state->module.getFunction(functionName),
