@@ -25,8 +25,8 @@ struct S {
 
 inline constexpr int kInt = 13;
 
-using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, 25>;
-using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs, 25>;
+using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, 25>;
+using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs,detail::mkMemManagerTwoPtrs,  25>;
 
 using StorageTypes = boost::mpl::list<Storage1, Storage2, detail::DynamicStorage>;
 
