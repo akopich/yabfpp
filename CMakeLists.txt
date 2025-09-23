@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(yabfpp)
 
-SET(GCC_COVERAGE_COMPILE_FLAGS " -fexceptions -g0 -O0")
+SET(GCC_COVERAGE_COMPILE_FLAGS " -fexceptions -g3 -O0")
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 set(CMAKE_CXX_STANDARD 26)

@@ -15,6 +15,7 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
+    // using Erased = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  80>;
     using Erased = std::any;
 
     template <typename T>
@@ -61,7 +62,7 @@ class MinusInt8Expr {
 public:
     explicit MinusInt8Expr(Int8Expr value) : value(std::move(value)) {}
 
-    llvm::Value* generate(BFMachine& bfMachine)  {
+    llvm::Value* generate(BFMachine& bfMachine) const  {
         auto beforeMinus = value.generate(bfMachine);
         CompilerState* state = bfMachine.state;
         return state->builder.CreateMul(beforeMinus, state->getConstChar(-1));
@@ -74,7 +75,7 @@ private:
 public:
     explicit VariableInt8Expr(std::string name) : name(std::move(name)) {}
 
-    llvm::Value* generate(BFMachine& bfMachine) {
+    llvm::Value* generate(BFMachine& bfMachine) const {
         return bfMachine.state->getVariableHandler().getVariableValue(name);
     }
 };

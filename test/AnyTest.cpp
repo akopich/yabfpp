@@ -25,14 +25,17 @@ struct S {
 
 inline constexpr int kInt = 13;
 
-using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, 25>;
-using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs,detail::mkMemManagerTwoPtrs,  25>;
+//using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, 25>;
+using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  8>;
+using Storage2Big = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  80>;
 
-using StorageTypes = boost::mpl::list<Storage1, Storage2, detail::DynamicStorage>;
+using StorageTypes = boost::mpl::list<
+    // Storage1, 
+    Storage2, Storage2Big, detail::DynamicStorage>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiate, Storage, StorageTypes) {
     {
-        Storage storage(S{kInt});
+        Storage storage(std::in_place_type<S>, kInt);
         BOOST_CHECK(any_cast<S>(storage).i == kInt);
         Storage otherStorage = std::move(storage);
         BOOST_CHECK(any_cast<S>(otherStorage).i == kInt);

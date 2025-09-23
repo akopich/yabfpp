@@ -64,6 +64,18 @@ constexpr inline auto mkMemManagerTwoPtrs = []<typename T>(std::in_place_type_t<
     };
 };
 
+constexpr inline auto mkMemManagerTwoPtrsDynamic = []<typename T>(std::in_place_type_t<T>) {
+    using Uniq = std::unique_ptr<T>;
+    return MemManagerTwoPtrs {
+            [](void* ptr) { delete (*static_cast<T**>(ptr)); },
+            [](void* ptr, void* dst) { 
+                (*static_cast<T**>(dst)) = *static_cast<T**>(ptr); 
+                *static_cast<T**>(ptr) = nullptr;
+            },
+            [](void* p) -> void* { return *static_cast<void**>(p); }
+    };
+};
+
 enum Op {
     GET, DEL, MOV
 };
@@ -105,18 +117,28 @@ constexpr inline auto mkMemManagerOnePtr = []<typename T>(std::in_place_type_t<T
     };
 };
 
-template <typename MemManager, auto mmMaker, std::size_t Size>
+template <typename MemManager, auto mmMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
 class StaticStorage {
     public:
-        template <typename T> requires(sizeof(T) <= Size)
+        template <typename T, bool IsBig = (sizeof(T) > Size)> 
         StaticStorage(T&& t) :  
-            mm(mmMaker(std::in_place_type<T>)) {
-            new(ptr()) T(std::forward<T>(t));
+            mm(IsBig ? mmDynamicMaker(std::in_place_type<T>): mmMaker(std::in_place_type<T>)) {
+            if constexpr (sizeof(T) > Size) {
+               T* obj = new T(std::forward<T>(t));
+               (*static_cast<T**>(ptr())) = obj;
+            } else {
+                new(ptr()) T(std::forward<T>(t));
+            }
         }
-        template <typename T, typename ... Args> requires(sizeof(T) <= Size)
+        template <typename T, typename ... Args, bool IsBig = (sizeof(T) > Size)>
         StaticStorage(std::in_place_type_t<T> tag, Args... args) :  
-            mm(mmMaker(tag)) {
-            new(ptr()) T(std::forward<Args>(args)...);
+            mm(IsBig ? mmDynamicMaker(tag): mmMaker(tag)) {
+            if constexpr (sizeof(T) > Size) {
+               auto* obj = new T(std::forward<Args>(args)...);
+               *static_cast<void**>(ptr()) = obj;
+            } else {
+                new(ptr()) T(std::forward<Args>(args)...);
+            }
         }
         StaticStorage(StaticStorage&) = delete;
         StaticStorage& operator=(StaticStorage&) = delete;
@@ -135,14 +157,16 @@ class StaticStorage {
 
         template <typename T, typename Self>
         decltype(auto) get(this Self&& self) {
-            return *static_cast<RetainConstPtr<Self, T>>(std::forward<Self>(self).ptr());
+            return *static_cast<RetainConstPtr<Self, T>>(self.mm.get(
+                      const_cast<void*>(std::forward<Self>(self).ptr())
+                ));
         }
     private:
         alignas(void*) std::array<char, Size> storage;
 
         template <typename Self>
         decltype(auto) ptr(this Self&& self) {
-            return static_cast<RetainConstPtr<Self, void>>(self.mm.get(&std::forward<Self>(self).storage.front()));
+            return static_cast<RetainConstPtr<Self, void>>(&std::forward<Self>(self).storage.front());
         }
 
         MemManager mm;
