@@ -234,8 +234,18 @@ private:
 public:
     constexpr DynamicStorage(): storage(nullptr) {}
 
+    DynamicStorage(const DynamicStorage&) = delete;
+    DynamicStorage& operator=(const DynamicStorage&) = delete;
+
     template <typename T>
     DynamicStorage(T&& t): storage{new T(std::forward<T>(t)), Deleter{kTypeTag<T>}} {}
+
+    DynamicStorage& operator=(DynamicStorage&& t) {
+        storage = std::move(t.storage);
+        return *this;
+    }
+
+    DynamicStorage(DynamicStorage&& t): storage(std::move(t.storage)) { }
 
     template <typename T, typename ... Args>
     DynamicStorage(std::in_place_type_t<T>, Args&& ... args): storage{new T(std::forward<Args>(args)...), Deleter{kTypeTag<T>}} {}

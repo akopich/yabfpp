@@ -16,8 +16,9 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
-    using Erased = DynamicStorage;
-    // using Erased = std::any;
+    using Erased = AnyOnePtr<8>;
+    //using Erased = DynamicStorage;
+    //using Erased = std::any;
 
     template <typename T>
     static auto mkGenPtr() {
@@ -30,6 +31,15 @@ public:
     }
     R generate(BFMachine& bfMachine) const {
         return std::invoke(genPtr, obj, bfMachine);
+    }
+
+    ExprBase(const ExprBase&) = delete;
+    ExprBase& operator=(const ExprBase&) = delete;
+    ExprBase(ExprBase&& other) : genPtr(other.genPtr), obj(std::move(other.obj)) {}
+    ExprBase& operator=(ExprBase&& other) {
+       genPtr = other.genPtr;
+       obj = std::move(other.obj);
+       return *this;
     }
 
 private: 
