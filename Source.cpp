@@ -9,9 +9,6 @@
 #include <algorithm>
 
 
-Source::Source(std::vector<std::string> lines, std::function<bool(char)> skip) :
-        lines(std::move(lines)), skip(std::move(skip)) {}
-
 Source::Iterator::Iterator(const Source* const source, const std::vector<std::string>::const_iterator& lineIt,
                            const std::basic_string<char, std::char_traits<char>, std::allocator<char>>::const_iterator& charIt)
         : source(source), lineIt(lineIt), charIt(charIt) {}

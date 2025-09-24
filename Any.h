@@ -4,36 +4,13 @@
 #include <utility>
 #include <memory>
 #include <type_traits>
-#include <print>
 
 namespace detail {
 
 template <typename S, typename T>
 using RetainConstPtr = std::conditional_t<std::is_const_v<std::remove_reference_t<S>>, const T*, T*>;
 
-// todo remove me
-struct Deleter {
-    private:
-        using DeletePtr = void(*)(void*);
-    public:
-        constexpr Deleter(): deletePtr(nullptr) {}
-
-        template <typename T>
-        Deleter(std::in_place_type_t<T>) :
-            deletePtr(+[](void* ptr) { static_cast<T*>(ptr)->~T(); }) {}
-
-        void del(void* p) const {
-            std::invoke(deletePtr, p);
-        }
-
-        void operator()(void* p) const {
-            del(p);
-        }
-
-        DeletePtr deletePtr;
-};
-
-struct MemManagerTwoPtrs {
+struct MemManagerThreePtrs {
     private:
         using DeletePtr = void(*)(void*);
         using MovePtr = void(*)(void*, void*);
@@ -56,20 +33,20 @@ struct MemManagerTwoPtrs {
         GetPtr getPtr;
 };
 
-constexpr inline auto mkMemManagerTwoPtrs = []<typename T>(std::in_place_type_t<T>) {
-    return MemManagerTwoPtrs{
+constexpr inline auto mkMemManagerThreePtrs = []<typename T>(std::in_place_type_t<T>) {
+    return MemManagerThreePtrs{
             [](void* ptr) { static_cast<T*>(ptr)->~T(); },
             [](void* ptr, void* dst) { new(dst) T(std::move(*static_cast<T*>(ptr))); },
             [](void* p) { return p; }
     };
 };
 
-constexpr inline auto mkMemManagerTwoPtrsDynamic = []<typename T>(std::in_place_type_t<T>) {
+constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(std::in_place_type_t<T>) {
     using Uniq = std::unique_ptr<T>;
-    return MemManagerTwoPtrs {
-            [](void* ptr) { delete (*static_cast<T**>(ptr)); },
+    return MemManagerThreePtrs {
+            [](void* ptr) { delete *static_cast<T**>(ptr); },
             [](void* ptr, void* dst) { 
-                (*static_cast<T**>(dst)) = *static_cast<T**>(ptr); 
+                *static_cast<T**>(dst) = *static_cast<T**>(ptr); 
                 *static_cast<T**>(ptr) = nullptr;
             },
             [](void* p) -> void* { return *static_cast<void**>(p); }
@@ -117,19 +94,30 @@ constexpr inline auto mkMemManagerOnePtr = []<typename T>(std::in_place_type_t<T
     };
 };
 
+constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(std::in_place_type_t<T>) {
+    return MemManagerOnePtr{
+        +[](void* ptr, void* dst, Op op) -> void* {
+            switch (op) {
+                case GET:
+                    return *static_cast<void**>(ptr);
+                case DEL: 
+                    delete *static_cast<T**>(ptr);
+                    return nullptr;
+                case MOV:
+                    *static_cast<T**>(dst) = *static_cast<T**>(ptr); 
+                    *static_cast<T**>(ptr) = nullptr;
+                    return nullptr;
+            }
+        }
+    };
+};
+
 template <typename MemManager, auto mmMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
 class StaticStorage {
     public:
         template <typename T, bool IsBig = (sizeof(T) > Size)> 
-        StaticStorage(T&& t) :  
-            mm(IsBig ? mmDynamicMaker(std::in_place_type<T>): mmMaker(std::in_place_type<T>)) {
-            if constexpr (sizeof(T) > Size) {
-               T* obj = new T(std::forward<T>(t));
-               (*static_cast<T**>(ptr())) = obj;
-            } else {
-                new(ptr()) T(std::forward<T>(t));
-            }
-        }
+        StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
+
         template <typename T, typename ... Args, bool IsBig = (sizeof(T) > Size)>
         StaticStorage(std::in_place_type_t<T> tag, Args... args) :  
             mm(IsBig ? mmDynamicMaker(tag): mmMaker(tag)) {
@@ -172,6 +160,27 @@ class StaticStorage {
         MemManager mm;
 };
 
+struct Deleter {
+    private:
+        using DeletePtr = void(*)(void*);
+    public:
+        constexpr Deleter(): deletePtr(nullptr) {}
+
+        template <typename T>
+        Deleter(std::in_place_type_t<T>) :
+            deletePtr(+[](void* ptr) { static_cast<T*>(ptr)->~T(); }) {}
+
+        void del(void* p) const {
+            std::invoke(deletePtr, p);
+        }
+
+        void operator()(void* p) const {
+            del(p);
+        }
+
+        DeletePtr deletePtr;
+};
+
 class DynamicStorage {
 private:
     std::unique_ptr<void, Deleter> storage;
@@ -194,6 +203,11 @@ template <typename T, typename Storage>
 decltype(auto) any_cast(Storage&& s) {
     return std::forward<Storage>(s).template get<T>();
 }
-
 }
 
+template <size_t Size>
+using AnyOnePtr = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, detail::mkMemManagerOnePtrDynamic, Size>;
+
+
+template <size_t Size>
+using AnyThreePtrs = detail::StaticStorage<detail::MemManagerThreePtrs, detail::mkMemManagerThreePtrs, detail::mkMemManagerThreePtrsDynamic, Size>;

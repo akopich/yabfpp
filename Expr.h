@@ -15,7 +15,7 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
-    // using Erased = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  80>;
+    // using Erased = DynamicStorage;
     using Erased = std::any;
 
     template <typename T>

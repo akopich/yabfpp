@@ -25,22 +25,27 @@ struct S {
 
 inline constexpr int kInt = 13;
 
-//using Storage1 = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, 25>;
-using Storage2 = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  8>;
-using Storage2Big = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs,  detail::mkMemManagerTwoPtrsDynamic,  80>;
+using Storage1 = AnyOnePtr<8>;
+using Storage1Big = AnyOnePtr<80>;
+using Storage2 = AnyThreePtrs<8>; 
+using Storage2Big = AnyThreePtrs<80>; 
 
 using StorageTypes = boost::mpl::list<
-    // Storage1, 
-    Storage2, Storage2Big, detail::DynamicStorage>;
+    Storage1, Storage1Big,
+    Storage2, Storage2Big,
+    detail::DynamicStorage>;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiate, Storage, StorageTypes) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, Storage, StorageTypes) {
     {
         Storage storage(std::in_place_type<S>, kInt);
         BOOST_CHECK(any_cast<S>(storage).i == kInt);
         Storage otherStorage = std::move(storage);
         BOOST_CHECK(any_cast<S>(otherStorage).i == kInt);
     }
+    BOOST_CHECK(S::cnt == 0);
+}
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMoveDifferentScope, Storage, StorageTypes) {
     {
         Storage storage(S{kInt});
         {

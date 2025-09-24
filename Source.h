@@ -15,7 +15,8 @@ private:
     const std::vector<std::string> lines;
     const std::function<bool(char)> skip;
 public:
-    Source(std::vector<std::string> lines, std::function<bool(char)> skip);
+    Source(std::vector<std::string> lines, std::function<bool(char)> skip):
+        lines(std::move(lines)), skip(std::move(skip)) {}
 
     class Iterator {
     private:
