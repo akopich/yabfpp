@@ -4,6 +4,7 @@
 
 #include "Any.h"
 #include "BFMachine.h"
+#include "TypeTag.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <any>
 #include <utility>
@@ -35,11 +36,6 @@ private:
     using GenPtr = R(*)(const Erased& , BFMachine&);
     GenPtr genPtr;
     Erased obj;
-};
-
-template <typename T>
-class TypeTag{
-    using Type = T;
 };
 
 inline auto mkExprBase = []<typename Derived, typename T, typename ... Args>(TypeTag<Derived>, std::in_place_type_t<T> tag, Args&&... args) {

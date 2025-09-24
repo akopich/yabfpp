@@ -1,4 +1,5 @@
 #pragma once
+#include "TypeTag.h"
 #include <array>
 #include <functional>
 #include <utility>
@@ -33,7 +34,7 @@ struct MemManagerThreePtrs {
         GetPtr getPtr;
 };
 
-constexpr inline auto mkMemManagerThreePtrs = []<typename T>(std::in_place_type_t<T>) {
+constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) {
     return MemManagerThreePtrs{
             [](void* ptr) { static_cast<T*>(ptr)->~T(); },
             [](void* ptr, void* dst) { new(dst) T(std::move(*static_cast<T*>(ptr))); },
@@ -41,7 +42,7 @@ constexpr inline auto mkMemManagerThreePtrs = []<typename T>(std::in_place_type_
     };
 };
 
-constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(std::in_place_type_t<T>) {
+constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) {
     using Uniq = std::unique_ptr<T>;
     return MemManagerThreePtrs {
             [](void* ptr) { delete *static_cast<T**>(ptr); },
@@ -77,7 +78,7 @@ struct MemManagerOnePtr {
         Ptr ptr;
 };
 
-constexpr inline auto mkMemManagerOnePtr = []<typename T>(std::in_place_type_t<T>) {
+constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) {
     return MemManagerOnePtr{
         +[](void* ptr, void* dst, Op op) -> void* {
             switch (op) {
@@ -94,7 +95,7 @@ constexpr inline auto mkMemManagerOnePtr = []<typename T>(std::in_place_type_t<T
     };
 };
 
-constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(std::in_place_type_t<T>) {
+constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) {
     return MemManagerOnePtr{
         +[](void* ptr, void* dst, Op op) -> void* {
             switch (op) {
@@ -119,8 +120,8 @@ class StaticStorage {
         StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
 
         template <typename T, typename ... Args, bool IsBig = (sizeof(T) > Size)>
-        StaticStorage(std::in_place_type_t<T> tag, Args... args) :  
-            mm(IsBig ? mmDynamicMaker(tag): mmMaker(tag)) {
+        StaticStorage(std::in_place_type_t<T>, Args... args) :  
+            mm(IsBig ? mmDynamicMaker(kTypeTag<T>): mmMaker(kTypeTag<T>)) {
             if constexpr (sizeof(T) > Size) {
                auto* obj = new T(std::forward<Args>(args)...);
                *static_cast<void**>(ptr()) = obj;
@@ -167,7 +168,7 @@ struct Deleter {
         constexpr Deleter(): deletePtr(nullptr) {}
 
         template <typename T>
-        Deleter(std::in_place_type_t<T>) :
+        Deleter(TypeTag<T>) :
             deletePtr(+[](void* ptr) { static_cast<T*>(ptr)->~T(); }) {}
 
         void del(void* p) const {
@@ -188,10 +189,10 @@ public:
     constexpr DynamicStorage(): storage(nullptr) {}
 
     template <typename T>
-    DynamicStorage(T&& t): storage{new T(std::forward<T>(t)), Deleter{std::in_place_type<T>}} {}
+    DynamicStorage(T&& t): storage{new T(std::forward<T>(t)), Deleter{kTypeTag<T>}} {}
 
     template <typename T, typename ... Args>
-    DynamicStorage(std::in_place_type_t<T> tag, Args&& ... args): storage{new T(std::forward<Args>(args)...), Deleter{tag}} {}
+    DynamicStorage(std::in_place_type_t<T>, Args&& ... args): storage{new T(std::forward<Args>(args)...), Deleter{kTypeTag<T>}} {}
 
     template <typename T, typename Self>
     auto& get(this Self&& self) {
