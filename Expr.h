@@ -16,8 +16,8 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
-    // using Erased = DynamicStorage;
-    using Erased = std::any;
+    using Erased = DynamicStorage;
+    // using Erased = std::any;
 
     template <typename T>
     static auto mkGenPtr() {

@@ -34,23 +34,79 @@ struct MemManagerThreePtrs {
         GetPtr getPtr;
 };
 
-constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) {
-    return MemManagerThreePtrs{
-            [](void* ptr) { static_cast<T*>(ptr)->~T(); },
-            [](void* ptr, void* dst) { new(dst) T(std::move(*static_cast<T*>(ptr))); },
-            [](void* p) { return p; }
-    };
+template <typename T>
+constexpr inline auto delStatic = [](void* ptr) {
+    static_cast<T*>(ptr)->~T(); 
+    return nullptr;
 };
 
+template <typename T>
+constexpr inline auto movStatic = [](void* src, void* dst) {
+    new(dst) T(std::move(*static_cast<T*>(src))); 
+    return nullptr;
+};
+
+template <typename T>
+constexpr inline auto getStatic = [](void* ptr) {
+    return ptr;
+};
+
+
+template <typename F> 
+struct FunArgs : FunArgs<decltype(&F::operator())> {};
+
+template <typename C, typename ... Args, typename R>
+struct FunArgs<R(C::*)(Args...) const> {
+    using ArgsT = std::tuple<Args...>;
+ };
+
+template <typename F, typename ... Args>
+constexpr auto mkReturn(std::tuple<Args...> ) {
+    return +[](Args ... args) -> void {
+        std::invoke(F{}, std::forward<Args>(args)...);
+    };
+}
+
+template<typename T>
+constexpr inline auto noReturn = mkReturn<T>(typename FunArgs<T>::ArgsT{});
+
+template <typename Del, typename Mov, typename Get>
+auto mkMemManagerThreePtrsFromLambdas(Del, Mov, Get) {
+    return MemManagerThreePtrs{
+            noReturn<Del>,
+            noReturn<Mov>,
+            Get{}
+    };
+}
+
+constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) {
+    return mkMemManagerThreePtrsFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
+};
+
+template <typename T>
+constexpr inline auto delDynamic = [](void* ptr) {
+    delete *static_cast<T**>(ptr);
+    return nullptr;
+};
+
+template <typename T>
+constexpr inline auto getDynamic = [](void* ptr) {
+    return *static_cast<void**>(ptr);
+};
+
+template <typename T>
+constexpr inline auto movDynamic = [](void* src, void* dst) {
+    *static_cast<T**>(dst) = *static_cast<T**>(src); 
+    *static_cast<T**>(src) = nullptr;
+    return nullptr;
+};
+
+
 constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) {
-    using Uniq = std::unique_ptr<T>;
     return MemManagerThreePtrs {
-            [](void* ptr) { delete *static_cast<T**>(ptr); },
-            [](void* ptr, void* dst) { 
-                *static_cast<T**>(dst) = *static_cast<T**>(ptr); 
-                *static_cast<T**>(ptr) = nullptr;
-            },
-            [](void* p) -> void* { return *static_cast<void**>(p); }
+            noReturn<decltype(delDynamic<T>)>,
+            noReturn<decltype(movDynamic<T>)>,
+            getDynamic<T>
     };
 };
 
@@ -78,39 +134,29 @@ struct MemManagerOnePtr {
         Ptr ptr;
 };
 
-constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) {
-    return MemManagerOnePtr{
+
+template <typename Del, typename Mov, typename Get>
+auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
+    return MemManagerOnePtr {
         +[](void* ptr, void* dst, Op op) -> void* {
             switch (op) {
                 case GET:
-                    return ptr;
+                    return Get{}(ptr);
                 case DEL: 
-                    static_cast<T*>(ptr)->~T();
-                    return nullptr;
+                    return Del{}(ptr);
                 case MOV:
-                    new(dst) T(std::move(*static_cast<T*>(ptr))); 
-                    return nullptr;
+                    return Mov{}(ptr, dst);
             }
         }
     };
+}
+
+constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) {
+    return mkMemManagerOnePtrFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
 };
 
 constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) {
-    return MemManagerOnePtr{
-        +[](void* ptr, void* dst, Op op) -> void* {
-            switch (op) {
-                case GET:
-                    return *static_cast<void**>(ptr);
-                case DEL: 
-                    delete *static_cast<T**>(ptr);
-                    return nullptr;
-                case MOV:
-                    *static_cast<T**>(dst) = *static_cast<T**>(ptr); 
-                    *static_cast<T**>(ptr) = nullptr;
-                    return nullptr;
-            }
-        }
-    };
+    return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>, getDynamic<T>);
 };
 
 template <typename MemManager, auto mmMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
