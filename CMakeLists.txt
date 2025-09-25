@@ -13,6 +13,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     # Release-specific flags
     add_compile_options("-fexceptions" "-O3" "-DNDEBUG")
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    # Profiling/Release with Debug Info flags
+    add_compile_options("-fexceptions" "-g" "-O2")
 else()
     # Default flags if CMAKE_BUILD_TYPE isn't specified
     add_compile_options("-fexceptions" "-g" "-O0")

@@ -71,7 +71,7 @@ template<typename T>
 constexpr inline auto noReturn = mkReturn<T>(typename FunArgs<T>::ArgsT{});
 
 template <typename Del, typename Mov, typename Get>
-auto mkMemManagerThreePtrsFromLambdas(Del, Mov, Get) {
+consteval auto mkMemManagerThreePtrsFromLambdas(Del, Mov, Get) {
     return MemManagerThreePtrs{
             noReturn<Del>,
             noReturn<Mov>,
@@ -79,7 +79,7 @@ auto mkMemManagerThreePtrsFromLambdas(Del, Mov, Get) {
     };
 }
 
-constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) {
+constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) consteval {
     return mkMemManagerThreePtrsFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
 };
 
@@ -102,7 +102,7 @@ constexpr inline auto movDynamic = [](void* src, void* dst) {
 };
 
 
-constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) {
+constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) consteval {
     return MemManagerThreePtrs {
             noReturn<decltype(delDynamic<T>)>,
             noReturn<decltype(movDynamic<T>)>,
@@ -136,7 +136,7 @@ struct MemManagerOnePtr {
 
 
 template <typename Del, typename Mov, typename Get>
-auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
+consteval auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
     return MemManagerOnePtr {
         +[](void* ptr, void* dst, Op op) -> void* {
             switch (op) {
@@ -151,11 +151,11 @@ auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
     };
 }
 
-constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) {
+constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) consteval {
     return mkMemManagerOnePtrFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
 };
 
-constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) {
+constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) consteval {
     return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>, getDynamic<T>);
 };
 
@@ -166,12 +166,15 @@ class StaticStorage {
         StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
 
         template <typename T, typename ... Args, bool IsBig = (sizeof(T) > Size)>
-        StaticStorage(std::in_place_type_t<T>, Args... args) :  
-            mm(IsBig ? mmDynamicMaker(kTypeTag<T>): mmMaker(kTypeTag<T>)) {
-            if constexpr (sizeof(T) > Size) {
+        StaticStorage(std::in_place_type_t<T>, Args... args) {
+            if constexpr (IsBig) {
+                static constinit auto mm = mmDynamicMaker(kTypeTag<T>);
+                this->mm = mm;
                auto* obj = new T(std::forward<Args>(args)...);
                *static_cast<void**>(ptr()) = obj;
             } else {
+                static constinit auto mm = mmMaker(kTypeTag<T>);
+                this->mm = mm;
                 new(ptr()) T(std::forward<Args>(args)...);
             }
         }
