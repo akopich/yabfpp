@@ -9,16 +9,16 @@ set(CMAKE_CXX_COMPILER clang++)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Debug-specific flags
-    add_compile_options("-fexceptions" "-g3" "-O0")
+    add_compile_options("-fno-exceptions" "-g3" "-O0")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     # Release-specific flags
-    add_compile_options("-fexceptions" "-O3" "-DNDEBUG")
+    add_compile_options("-fno-exceptions" "-O3" "-DNDEBUG")
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Profiling/Release with Debug Info flags
-    add_compile_options("-fexceptions" "-g" "-O2")
+    add_compile_options("-fno-exceptions" "-g" "-O2")
 else()
     # Default flags if CMAKE_BUILD_TYPE isn't specified
-    add_compile_options("-fexceptions" "-g" "-O0")
+    add_compile_options("-fno-exceptions" "-g" "-O0")
 endif()
 
 link_libraries()
@@ -35,10 +35,10 @@ link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 execute_process(COMMAND llvm-config --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS)
 string(STRIP ${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)
 
-find_package(Boost 1.76 COMPONENTS program_options REQUIRED)
+find_package(Boost 1.76 REQUIRED)
 find_package(benchmark REQUIRED)
 
-add_executable(yabfpp main.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxErrorException.cpp SyntaxErrorException.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h)
+add_executable(yabfpp third_party/args.hxx main.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h)
 target_link_libraries(yabfpp ${Boost_LIBRARIES})
 
 add_executable(SourceTest Source.cpp Source.h test/SourceTest.cpp)
@@ -47,5 +47,5 @@ target_link_libraries(SourceTest ${Boost_LIBRARIES})
 add_executable(AnyTest Any.h test/AnyTest.cpp)
 target_link_libraries(AnyTest ${Boost_LIBRARIES})
 
-add_executable(ParserBench  Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxErrorException.cpp SyntaxErrorException.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h bench/BFProgramGenerator.h bench/parserBench.cpp)
+add_executable(ParserBench  Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h bench/BFProgramGenerator.h bench/parserBench.cpp)
 target_link_libraries(ParserBench benchmark::benchmark)

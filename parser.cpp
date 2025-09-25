@@ -10,13 +10,13 @@
 #include "Expr.h"
 #include "parser.h"
 #include "Source.h"
-#include "SyntaxErrorException.h"
+#include "SyntaxError.h"
 
 
 void checkBlockClosed(Source::Iterator& i, char expected) {
     if (i.isEnd() || *i != expected) {
         std::string charAsString(1, expected);
-        throw SyntaxErrorException(i, charAsString + " is expected.");
+        syntaxError(i, charAsString + " is expected.");
     }
     ++i;
 }
@@ -52,7 +52,7 @@ Expr Parser::parseExpr(Source::Iterator& i) {
         case '[':
             return parseLoopExpr(i);
         default:
-            throw SyntaxErrorException(i, "Unexpected symbol.");
+            syntaxError(i, "Unexpected symbol.");
     }
 }
 
@@ -95,11 +95,11 @@ Expr Parser::parseBFFunctionCall(Source::Iterator& i) {
     std::string functionName = parseVariableName(i);
     auto functionIt = functionName2argNumber.find(functionName);
     if (functionIt == functionName2argNumber.end()) {
-        throw SyntaxErrorException(i, "Function " + functionName + " is not defined");
+        syntaxError(i, "Function " + functionName + " is not defined");
     }
     auto argExprs = parseCallFunctionArgumentList(i);
     if (argExprs.size() != functionIt->second) {
-        throw SyntaxErrorException(i,
+        syntaxError(i,
                                    "Function " + functionName + " takes " + std::to_string(functionIt->second) +
                                    " arguments, " + std::to_string(argExprs.size()) + " supplied");
     }
@@ -118,13 +118,13 @@ Expr Parser::parseBFFunctionDefinition(Source::Iterator& i) {
 
 std::vector<Int8Expr> Parser::parseCallFunctionArgumentList(Source::Iterator& i) {
     if (*i != '(')
-        throw SyntaxErrorException(i, "opening bracket expected");
+        syntaxError(i, "opening bracket expected");
     ++i;
     std::vector<Int8Expr> arguments;
     while (*i != ')') {
         arguments.emplace_back(parseInt8Expr(i, false));
         if (*i != ',' && *i != ')') {
-            throw SyntaxErrorException(i, "a comma, a closing bracket, variable name or an integer literal");
+            syntaxError(i, "a comma, a closing bracket, variable name or an integer literal");
         }
         if (*i == ',')
             i++;
@@ -135,13 +135,13 @@ std::vector<Int8Expr> Parser::parseCallFunctionArgumentList(Source::Iterator& i)
 
 std::vector<std::string> Parser::parseFunctionArgumentList(Source::Iterator& i) {
     if (*i != '(')
-        throw SyntaxErrorException(i, "opening bracket expected");
+        syntaxError(i, "opening bracket expected");
     ++i;
     std::vector<std::string> argNames;
     while (*i != ')') {
         argNames.push_back(parseVariableName(i));
         if (*i != ',' && *i != ')') {
-            throw SyntaxErrorException(i, "a comma, a closing bracket or an alphabetic character expected");
+            syntaxError(i, "a comma, a closing bracket or an alphabetic character expected");
         }
         if (*i == ',')
             i++;
@@ -178,7 +178,7 @@ Int8Expr Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
     if (defaultOneAllowed)
         return mkInt8Expr<ConstInt8Expr>(1);
 
-    throw SyntaxErrorException(i, "a variable name or an integer literal is expected");
+    syntaxError(i, "a variable name or an integer literal is expected");
 }
 
 Expr Parser::parse(const Source& src) {
