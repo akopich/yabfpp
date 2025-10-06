@@ -15,8 +15,8 @@ namespace detail{
 template <typename R>
 class ExprBase {
 public:
-    using Erased = AnyOnePtr<8>;
-    //using Erased = DynamicStorage;
+    //using Erased = AnyOnePtr<8>;
+    using Erased = DynamicStorage;
     //using Erased = std::any;
 
     template <typename T>
@@ -34,8 +34,8 @@ public:
 
     ExprBase(const ExprBase&) = delete;
     ExprBase& operator=(const ExprBase&) = delete;
-    ExprBase(ExprBase&& other) : genPtr(other.genPtr), obj(std::move(other.obj)) {}
-    ExprBase& operator=(ExprBase&& other) {
+    ExprBase(ExprBase&& other) noexcept : genPtr(other.genPtr), obj(std::move(other.obj)) {}
+    ExprBase& operator=(ExprBase&& other) noexcept {
        genPtr = other.genPtr;
        obj = std::move(other.obj);
        return *this;
