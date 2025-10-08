@@ -15,7 +15,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options("-fno-exceptions" "-O3" "-DNDEBUG")
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Profiling/Release with Debug Info flags
-    add_compile_options("-fno-exceptions" "-g" "-O2")
+    add_compile_options("-fno-exceptions" "-fno-omit-frame-pointer" "-g" "-O2")
 else()
     # Default flags if CMAKE_BUILD_TYPE isn't specified
     add_compile_options("-fno-exceptions" "-g" "-O0")
@@ -49,3 +49,6 @@ target_link_libraries(AnyTest ${Boost_LIBRARIES})
 
 add_executable(ParserBench  Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h bench/BFProgramGenerator.h bench/parserBench.cpp)
 target_link_libraries(ParserBench benchmark::benchmark)
+
+add_executable(AnyBench Any.h bench/anyBench.cpp)
+target_link_libraries(AnyBench benchmark::benchmark)

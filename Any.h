@@ -116,19 +116,19 @@ enum Op {
 
 struct MemManagerOnePtr {
     private :
-        using Ptr = void*(*)(void*, void*, Op);
+        using Ptr = void*(*)(Op, void*, void*);
     public: 
 
         void del(void* p) const {
-            std::invoke(ptr, p, nullptr, DEL);
+            std::invoke(ptr, DEL, p, nullptr);
         }
 
         void move(void* src, void* dst) const {
-            std::invoke(ptr, src, dst, MOV);
+            std::invoke(ptr, MOV, src, dst);
         }
 
         void* get(void* p) const {
-            return std::invoke(ptr, p, nullptr, GET);
+            return std::invoke(ptr, GET, p, nullptr);
         }
 
         Ptr ptr;
@@ -138,7 +138,7 @@ struct MemManagerOnePtr {
 template <typename Del, typename Mov, typename Get>
 consteval auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
     return MemManagerOnePtr {
-        +[](void* ptr, void* dst, Op op) -> void* {
+        +[]( Op op, void* ptr, void* dst) -> void* {
             switch (op) {
                 case GET:
                     return Get{}(ptr);
@@ -159,7 +159,7 @@ constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) con
     return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>, getDynamic<T>);
 };
 
-template <typename MemManager, auto mmMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
+template <typename MemManager, auto mmStaticMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
 class StaticStorage {
     public:
         template <typename T, bool IsBig = (sizeof(T) > Size)> 
@@ -173,7 +173,7 @@ class StaticStorage {
                auto* obj = new T(std::forward<Args>(args)...);
                *static_cast<void**>(ptr()) = obj;
             } else {
-                static constinit auto mm = mmMaker(kTypeTag<T>);
+                static constinit auto mm = mmStaticMaker(kTypeTag<T>);
                 this->mm = mm;
                 new(ptr()) T(std::forward<Args>(args)...);
             }
@@ -201,13 +201,12 @@ class StaticStorage {
         }
     private:
         alignas(void*) std::array<char, Size> storage;
+        MemManager mm;
 
         template <typename Self>
         decltype(auto) ptr(this Self&& self) {
             return static_cast<RetainConstPtr<Self, void>>(&std::forward<Self>(self).storage.front());
         }
-
-        MemManager mm;
 };
 
 struct Deleter {
