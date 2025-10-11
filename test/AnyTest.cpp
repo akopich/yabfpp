@@ -27,8 +27,8 @@ inline constexpr int kInt = 13;
 
 using Storage1 = AnyOnePtr<8>;
 using Storage1Big = AnyOnePtr<80>;
-using Storage2 = AnyThreePtrs<8>; 
-using Storage2Big = AnyThreePtrs<80>; 
+using Storage2 = AnyTwoPtrs<8>; 
+using Storage2Big = AnyTwoPtrs<80>; 
 
 using StorageTypes = boost::mpl::list<
     Storage1, Storage1Big,

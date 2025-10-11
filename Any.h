@@ -11,11 +11,10 @@ namespace detail {
 template <typename S, typename T>
 using RetainConstPtr = std::conditional_t<std::is_const_v<std::remove_reference_t<S>>, const T*, T*>;
 
-struct MemManagerThreePtrs {
+struct MemManagerTwoPtrs {
     private:
         using DeletePtr = void(*)(void*);
         using MovePtr = void(*)(void*, void*);
-        using GetPtr = void*(*)(void*);
     public:
         void del(void* p) const {
             std::invoke(deletePtr, p);
@@ -25,68 +24,35 @@ struct MemManagerThreePtrs {
             std::invoke(movePtr, src, dst);
         }
 
-        void* get(void* p) const {
-            return std::invoke(getPtr, p);
-        }
-
         DeletePtr deletePtr;
         MovePtr movePtr;
-        GetPtr getPtr;
 };
 
 template <typename T>
 constexpr inline auto delStatic = [](void* ptr) {
     static_cast<T*>(ptr)->~T(); 
-    return nullptr;
 };
 
 template <typename T>
 constexpr inline auto movStatic = [](void* src, void* dst) {
     new(dst) T(std::move(*static_cast<T*>(src))); 
-    return nullptr;
 };
 
-template <typename T>
-constexpr inline auto getStatic = [](void* ptr) {
-    return ptr;
-};
-
-
-template <typename F> 
-struct FunArgs : FunArgs<decltype(&F::operator())> {};
-
-template <typename C, typename ... Args, typename R>
-struct FunArgs<R(C::*)(Args...) const> {
-    using ArgsT = std::tuple<Args...>;
- };
-
-template <typename F, typename ... Args>
-constexpr auto mkReturn(std::tuple<Args...> ) {
-    return +[](Args ... args) -> void {
-        std::invoke(F{}, std::forward<Args>(args)...);
+template <typename Del, typename Mov>
+consteval auto mkMemManagerTwoPtrsFromLambdas(Del, Mov) {
+    return MemManagerTwoPtrs{
+            Del{},
+            Mov{},
     };
 }
 
-template<typename T>
-constexpr inline auto noReturn = mkReturn<T>(typename FunArgs<T>::ArgsT{});
-
-template <typename Del, typename Mov, typename Get>
-consteval auto mkMemManagerThreePtrsFromLambdas(Del, Mov, Get) {
-    return MemManagerThreePtrs{
-            noReturn<Del>,
-            noReturn<Mov>,
-            Get{}
-    };
-}
-
-constexpr inline auto mkMemManagerThreePtrs = []<typename T>(TypeTag<T>) consteval {
-    return mkMemManagerThreePtrsFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
+constexpr inline auto mkMemManagerTwoPtrs = []<typename T>(TypeTag<T>) consteval {
+    return mkMemManagerTwoPtrsFromLambdas(delStatic<T>, movStatic<T>);
 };
 
 template <typename T>
 constexpr inline auto delDynamic = [](void* ptr) {
     delete *static_cast<T**>(ptr);
-    return nullptr;
 };
 
 template <typename T>
@@ -98,25 +64,23 @@ template <typename T>
 constexpr inline auto movDynamic = [](void* src, void* dst) {
     *static_cast<T**>(dst) = *static_cast<T**>(src); 
     *static_cast<T**>(src) = nullptr;
-    return nullptr;
 };
 
 
-constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) consteval {
-    return MemManagerThreePtrs {
-            noReturn<decltype(delDynamic<T>)>,
-            noReturn<decltype(movDynamic<T>)>,
-            getDynamic<T>
+constexpr inline auto mkMemManagerTwoPtrsDynamic = []<typename T>(TypeTag<T>) consteval {
+    return MemManagerTwoPtrs {
+            delDynamic<T>,
+            movDynamic<T>,
     };
 };
 
 enum Op {
-    GET, DEL, MOV
+    DEL, MOV
 };
 
 struct MemManagerOnePtr {
     private :
-        using Ptr = void*(*)(Op, void*, void*);
+        using Ptr = void(*)(Op, void*, void*);
     public: 
 
         void del(void* p) const {
@@ -127,36 +91,31 @@ struct MemManagerOnePtr {
             std::invoke(ptr, MOV, src, dst);
         }
 
-        void* get(void* p) const {
-            return std::invoke(ptr, GET, p, nullptr);
-        }
-
         Ptr ptr;
 };
 
 
-template <typename Del, typename Mov, typename Get>
-consteval auto mkMemManagerOnePtrFromLambdas(Del, Mov, Get) {
+template <typename Del, typename Mov>
+consteval auto mkMemManagerOnePtrFromLambdas(Del, Mov) {
     return MemManagerOnePtr {
-        +[]( Op op, void* ptr, void* dst) -> void* {
+        +[]( Op op, void* ptr, void* dst) -> void {
             switch (op) {
-                case GET:
-                    return Get{}(ptr);
                 case DEL: 
-                    return Del{}(ptr);
+                    Del{}(ptr);
+                    break;
                 case MOV:
-                    return Mov{}(ptr, dst);
+                    Mov{}(ptr, dst);
             }
         }
     };
 }
 
 constexpr inline auto mkMemManagerOnePtr = []<typename T>(TypeTag<T>) consteval {
-    return mkMemManagerOnePtrFromLambdas(delStatic<T>, movStatic<T>, getStatic<T>);
+    return mkMemManagerOnePtrFromLambdas(delStatic<T>, movStatic<T>);
 };
 
 constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) consteval {
-    return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>, getDynamic<T>);
+    return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>);
 };
 
 template <typename MemManager, auto mmStaticMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
@@ -193,11 +152,14 @@ class StaticStorage {
             mm.del(ptr());
         }
 
-        template <typename T, typename Self>
+        template <typename T, typename Self, bool IsBig = (sizeof(T) > Size)>
         decltype(auto) get(this Self&& self) {
-            return *static_cast<RetainConstPtr<Self, T>>(self.mm.get(
-                      const_cast<void*>(std::forward<Self>(self).ptr())
-                ));
+            auto p = const_cast<void*>(std::forward<Self>(self).ptr());
+            if constexpr (IsBig) {
+                return *static_cast<RetainConstPtr<Self, T>>(*static_cast<void**>(p));
+            } else {
+                return *static_cast<RetainConstPtr<Self, T>>(p);
+            }
         }
     private:
         alignas(void*) std::array<char, Size> storage;
@@ -269,4 +231,4 @@ using AnyOnePtr = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemM
 
 
 template <size_t Size>
-using AnyThreePtrs = detail::StaticStorage<detail::MemManagerThreePtrs, detail::mkMemManagerThreePtrs, detail::mkMemManagerThreePtrsDynamic, Size>;
+using AnyTwoPtrs = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs, detail::mkMemManagerTwoPtrsDynamic, Size>;
