@@ -1,7 +1,11 @@
 #include <benchmark/benchmark.h>
 #include <algorithm>
 #include <any>
+#include <limits>
+#include <random>
+#include <ranges>
 #include <utility> 
+#include <limits> 
 #include "../Any.h"
 
 
@@ -63,6 +67,24 @@ static void benchSwapInt(benchmark::State& state) {
   }
 }
 
+
+template <size_t N, typename Any, typename ValueType>
+static void benchVectorConstruction(benchmark::State& state) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> intDist(1, std::numeric_limits<int>::max());
+    std::vector<ValueType> ints(N);
+    std::ranges::generate(ints, [&] {return intDist(gen);});
+
+    for (auto _ : state) {
+        auto anys = ints | std::ranges::views::transform([&](auto i) { 
+                                 return Any{std::in_place_type<ValueType>, i};
+                            }) 
+                         | std::ranges::to<std::vector>();
+        benchmark::ClobberMemory(); 
+    }
+}
+
 constexpr static int kMinTime = 1;
 
 template <typename Any>
@@ -82,6 +104,45 @@ static auto benchWithInt128 = benchWithValue<Any, __int128, 0xDEADDEADBEEF>;
 
 BENCHMARK(benchWithInt128<AnyOnePtr<8>>)->MinTime(kMinTime);
 BENCHMARK(benchWithInt128<std::any>)->MinTime(kMinTime);
+
+template <size_t N, typename Any>
+static auto benchVectorConstructionInt = benchVectorConstruction<N, Any, int>;
+
+template <size_t N, typename Any>
+static auto benchVectorConstructionInt64 = benchVectorConstruction<N, Any, std::uint64_t>;
+
+template <size_t N, typename Any>
+static auto benchVectorConstructionInt128 = benchVectorConstruction<N, Any, __int128_t>;
+
+BENCHMARK(benchVectorConstructionInt<1, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<1, std::any>);
+
+BENCHMARK(benchVectorConstructionInt<10, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<10, std::any>);
+
+BENCHMARK(benchVectorConstructionInt<100, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<100, std::any>);
+
+BENCHMARK(benchVectorConstructionInt<1000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<1000, std::any>);
+
+BENCHMARK(benchVectorConstructionInt<100000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<100000, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<1, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<1, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<10, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<10, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<100, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<100, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<1000, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<100000, std::any>);
 
 //BENCHMARK(benchCtorInt<AnyOnePtr<8>>)->MinTime(kMinTime);
 //BENCHMARK(benchCtorInt<std::any>)->MinTime(kMinTime);
