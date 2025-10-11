@@ -156,10 +156,9 @@ class StaticStorage {
         decltype(auto) get(this Self&& self) {
             auto p = const_cast<void*>(std::forward<Self>(self).ptr());
             if constexpr (IsBig) {
-                return *static_cast<RetainConstPtr<Self, T>>(*static_cast<void**>(p));
-            } else {
-                return *static_cast<RetainConstPtr<Self, T>>(p);
-            }
+                p = *static_cast<void**>(p);
+            } 
+            return *static_cast<RetainConstPtr<Self, T>>(p);
         }
     private:
         alignas(void*) std::array<char, Size> storage;
