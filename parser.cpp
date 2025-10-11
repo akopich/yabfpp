@@ -161,7 +161,7 @@ std::string Parser::parseIntLiteral(Source::Iterator& i) {
 Expr Parser::parse(Source::Iterator& i) {
     std::vector<Expr> v;
     while (!i.isEnd() && *i != ']' && *i != '}') {
-        v.push_back(std::move(parseExpr(i)));
+        v.push_back(parseExpr(i));
     }
     return mkExpr<ListExpr>(std::move(v));
 }

@@ -35,7 +35,7 @@ int main(int ac, char* av[]) {
     args::Flag legacyModeFlag(argsParser, "legacy-mode", "Legacy mode switch.", {'l', "legacy-mode"}, false);
     args::ValueFlag<std::string> targetTriple(argsParser, "target", "The target triple is a string in the format of: CPU_TYPE-VENDOR-OPERATING_SYSTEM or CPU_TYPE-VENDOR-KERNEL-OPERATING_SYSTEM.", {'t', "target"}, llvm::sys::getDefaultTargetTriple());
 
-    bool parseSuccess = argsParser.ParseCLI(ac, av);
+    argsParser.ParseCLI(ac, av);
 
     // Check if the parser ran successfully.
     if (argsParser.GetError() != args::Error::None) {

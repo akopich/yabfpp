@@ -24,8 +24,8 @@ public:
     }
     template <typename T, typename ... Args>
     ExprBase(std::in_place_type_t<T> tag, Args&&... args ): 
-        obj(tag, std::forward<Args>(args)...), 
-        genPtr(mkGenPtr<T>()) {
+        genPtr(mkGenPtr<T>()), 
+        obj(tag, std::forward<Args>(args)...) {
     }
     R generate(BFMachine& bfMachine) const {
         return std::invoke(genPtr, obj, bfMachine);

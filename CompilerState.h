@@ -33,7 +33,7 @@ private:
 
     void return0FromMain();
 
-    llvm::LLVMContext context;
+    llvm::LLVMContext context{};
     PlatformDependent platformDependent;
     std::stack<VariableHandler> variableHandlerStack;
 
@@ -54,12 +54,11 @@ public:
     CompilerState(std::string_view module_name,
                   std::string_view targetTriple,
                   PlatformDependent platformDependent)
-        : context(),
-          ConstantHelper(&context),
+        : ConstantHelper(&context),
+          platformDependent(platformDependent),
           module(module_name, context),
           builder(context),
-          clib(&module, &builder),
-          platformDependent(platformDependent) {
+          clib(&module, &builder) {
               module.setTargetTriple(targetTriple);
           }
 
@@ -118,7 +117,7 @@ inline std::unique_ptr<CompilerState> initCompilerState(std::string_view name, s
     state->generateEntryPoint();
     state->pushVariableHandlerStack();
 
-    return std::move(state);
+    return state;
 }
 
 

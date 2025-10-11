@@ -15,9 +15,10 @@ static auto runAny(Args&& ... args) {
 
 template<typename Any>
 static void benchWithInt(benchmark::State& state) {
-  for (auto _ : state) 
-    (runAny<Any, int>(42));
+  for (auto _ : state) {
+    runAny<Any, int>(42);
     benchmark::ClobberMemory(); 
+  }
 }
 
 template<typename Any>

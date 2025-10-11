@@ -12,7 +12,7 @@
 
 class Parser {
 private:
-    std::map<std::string, int> functionName2argNumber;
+    std::map<std::string, size_t> functionName2argNumber;
 
     Expr parseExpr(Source::Iterator& i);
 
