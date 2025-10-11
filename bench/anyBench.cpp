@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <algorithm>
 #include <any>
+#include <utility> 
 #include "../Any.h"
 
 
@@ -51,6 +52,17 @@ static void benchMoveInt(benchmark::State& state) {
   }
 }
 
+template<typename Any>
+static void benchSwapInt(benchmark::State& state) {
+  Any a{42};      
+  Any b{37};      
+  for (auto _ : state)  {
+    using std::swap;
+    swap(a,b);
+    benchmark::ClobberMemory(); 
+  }
+}
+
 constexpr static int kMinTime = 1;
 
 BENCHMARK(benchWithInt<AnyOnePtr<8>>)->MinTime(kMinTime);
@@ -62,6 +74,8 @@ BENCHMARK(benchGetWithGet)->MinTime(kMinTime);
 BENCHMARK(benchGetInt<std::any>)->MinTime(kMinTime);
 BENCHMARK(benchMoveInt<AnyOnePtr<8>>)->MinTime(kMinTime);
 BENCHMARK(benchMoveInt<std::any>)->MinTime(kMinTime);
+BENCHMARK(benchSwapInt<AnyOnePtr<8>>)->MinTime(kMinTime);
+BENCHMARK(benchSwapInt<std::any>)->MinTime(kMinTime);
 
 BENCHMARK_MAIN();
 

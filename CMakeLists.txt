@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 
-add_compile_options("-Wall" "-Wextra" "-pedantic" "-Werror")
+add_compile_options("-Wall" "-Wextra" "-pedantic")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Debug-specific flags

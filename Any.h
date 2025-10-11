@@ -36,6 +36,7 @@ constexpr inline auto delStatic = [](void* ptr) {
 template <typename T>
 constexpr inline auto movStatic = [](void* src, void* dst) {
     new(dst) T(std::move(*static_cast<T*>(src))); 
+    static_cast<T*>(src)->~T(); 
 };
 
 template <typename Del, typename Mov>
@@ -128,28 +129,31 @@ class StaticStorage {
         StaticStorage(std::in_place_type_t<T>, Args... args) {
             if constexpr (IsBig) {
                 static constinit auto mm = mmDynamicMaker(kTypeTag<T>);
-                this->mm = mm;
+                this->mm = &mm;
                auto* obj = new T(std::forward<Args>(args)...);
                *static_cast<void**>(ptr()) = obj;
             } else {
                 static constinit auto mm = mmStaticMaker(kTypeTag<T>);
-                this->mm = mm;
+                this->mm = &mm;
                 new(ptr()) T(std::forward<Args>(args)...);
             }
         }
         StaticStorage(StaticStorage&) = delete;
         StaticStorage& operator=(StaticStorage&) = delete;
         StaticStorage(StaticStorage&& other): mm(other.mm) {
-            mm.move(other.ptr(), ptr());
+            mm->move(other.ptr(), ptr());
+            other.mm = nullptr;
         }
         StaticStorage& operator=(StaticStorage&& other) {
             this->~StaticStorage();
             mm = other.mm;
-            mm.move(other.ptr(), ptr());
+            mm->move(other.ptr(), ptr());
+            other.mm = nullptr;
             return *this;
         }
         ~StaticStorage() {
-            mm.del(ptr());
+            if (mm != nullptr)
+                mm->del(ptr());
         }
 
         template <typename T, typename Self, bool IsBig = (sizeof(T) > Size)>
@@ -162,7 +166,7 @@ class StaticStorage {
         }
     private:
         alignas(void*) std::array<char, Size> storage;
-        MemManager mm;
+        MemManager* mm;
 
         template <typename Self>
         decltype(auto) ptr(this Self&& self) {
@@ -214,7 +218,7 @@ public:
     DynamicStorage(std::in_place_type_t<T>, Args&& ... args): storage{new T(std::forward<Args>(args)...), Deleter{kTypeTag<T>}} {}
 
     template <typename T, typename Self>
-    auto& get(this Self&& self) {
+    decltype(auto) get(this Self&& self) {
         return *static_cast<RetainConstPtr<Self, T>>(std::forward<Self>(self).storage.get());
     }
 };
