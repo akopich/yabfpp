@@ -138,7 +138,7 @@ class StaticStorage {
                 new(ptr()) T(std::forward<Args>(args)...);
             }
         }
-        StaticStorage(StaticStorage&) = delete;
+        StaticStorage(const StaticStorage&) = delete;
         StaticStorage& operator=(StaticStorage&) = delete;
         StaticStorage(StaticStorage&& other): mm(other.mm) {
             mm->move(other.ptr(), ptr());

@@ -3,7 +3,6 @@
 #include <any>
 #include <limits>
 #include <random>
-#include <ranges>
 #include <utility> 
 #include <limits> 
 #include "../Any.h"
@@ -77,10 +76,10 @@ static void benchVectorConstruction(benchmark::State& state) {
     std::ranges::generate(ints, [&] {return intDist(gen);});
 
     for (auto _ : state) {
-        auto anys = ints | std::ranges::views::transform([&](auto i) { 
-                                 return Any{std::in_place_type<ValueType>, i};
-                            }) 
-                         | std::ranges::to<std::vector>();
+        std::vector<Any> anys;
+        for (ValueType i : ints) {
+           anys.emplace_back(Any{std::in_place_type<ValueType>, i});
+        }
         benchmark::ClobberMemory(); 
     }
 }
@@ -126,6 +125,9 @@ BENCHMARK(benchVectorConstructionInt<100, std::any>);
 BENCHMARK(benchVectorConstructionInt<1000, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt<1000, std::any>);
 
+BENCHMARK(benchVectorConstructionInt<10000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt<10000, std::any>);
+
 BENCHMARK(benchVectorConstructionInt<100000, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt<100000, std::any>);
 
@@ -140,6 +142,9 @@ BENCHMARK(benchVectorConstructionInt128<100, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt128<1000, std::any>);
+
+BENCHMARK(benchVectorConstructionInt128<10000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<10000, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt128<100000, std::any>);
