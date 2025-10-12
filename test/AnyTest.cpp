@@ -45,6 +45,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, Storage, StorageTypes) {
     BOOST_CHECK(S::cnt == 0);
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateATypeWithBigAlignment, Storage, StorageTypes) {
+    {
+        static_assert(alignof(__int128) > alignof(void*));
+        Storage storage(std::in_place_type<__int128>, kInt);
+    }
+    BOOST_CHECK(S::cnt == 0);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMoveDifferentScope, Storage, StorageTypes) {
     {
         Storage storage(S{kInt});

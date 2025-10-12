@@ -4,6 +4,7 @@
 #include <functional>
 #include <utility>
 #include <memory>
+#include <print>
 #include <type_traits>
 
 namespace detail {
@@ -121,13 +122,16 @@ constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) con
 
 template <typename MemManager, auto mmStaticMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
 class StaticStorage {
+    private: 
+        template <typename T> 
+        inline static constexpr bool kIsBig = sizeof(T) > Size || alignof(T) > alignof(void*);
     public:
-        template <typename T, bool IsBig = (sizeof(T) > Size)> 
+        template <typename T> 
         StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
 
-        template <typename T, typename ... Args, bool IsBig = (sizeof(T) > Size)>
+        template <typename T, typename ... Args>
         StaticStorage(std::in_place_type_t<T>, Args... args) {
-            if constexpr (IsBig) {
+            if constexpr (kIsBig<T>) {
                 static constinit auto mm = mmDynamicMaker(kTypeTag<T>);
                 this->mm = &mm;
                auto* obj = new T(std::forward<Args>(args)...);
@@ -182,7 +186,7 @@ struct Deleter {
 
         template <typename T>
         Deleter(TypeTag<T>) :
-            deletePtr(+[](void* ptr) { static_cast<T*>(ptr)->~T(); }) {}
+            deletePtr(+[](void* ptr) { delete static_cast<T*>(ptr); }) {}
 
         void del(void* p) const {
             std::invoke(deletePtr, p);
@@ -216,6 +220,8 @@ public:
 
     template <typename T, typename ... Args>
     DynamicStorage(std::in_place_type_t<T>, Args&& ... args): storage{new T(std::forward<Args>(args)...), Deleter{kTypeTag<T>}} {}
+
+    ~DynamicStorage() = default; 
 
     template <typename T, typename Self>
     decltype(auto) get(this Self&& self) {

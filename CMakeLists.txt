@@ -18,6 +18,12 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Profiling/Release with Debug Info flags
     add_compile_options("-fno-exceptions" "-fno-omit-frame-pointer" "-g" "-O2")
+elseif(CMAKE_BUILD_TYPE STREQUAL "AUBSan")
+    add_compile_options("-fno-exceptions" "-g" "-O1"
+                        "-fsanitize=address,undefined"
+                        "-fno-omit-frame-pointer"
+                        "-fno-sanitize-recover=all")
+    link_libraries("-fsanitize=address,undefined")
 else()
     # Default flags if CMAKE_BUILD_TYPE isn't specified
     add_compile_options("-fno-exceptions" "-g" "-O0")

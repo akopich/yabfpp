@@ -110,8 +110,17 @@ static auto benchVectorConstructionInt = benchVectorConstruction<N, Any, int>;
 template <size_t N, typename Any>
 static auto benchVectorConstructionInt64 = benchVectorConstruction<N, Any, std::uint64_t>;
 
+struct Int128 {
+    uint64_t a;
+    uint64_t b;
+    Int128()  {}
+    Int128(int x) : a(x), b(x) {}
+};
+
+static_assert(alignof(Int128) == alignof(void*));
+
 template <size_t N, typename Any>
-static auto benchVectorConstructionInt128 = benchVectorConstruction<N, Any, __int128_t>;
+static auto benchVectorConstructionInt128 = benchVectorConstruction<N, Any, Int128>;
 
 BENCHMARK(benchVectorConstructionInt<1, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt<1, std::any>);
@@ -132,21 +141,27 @@ BENCHMARK(benchVectorConstructionInt<100000, AnyOnePtr<8>>);
 BENCHMARK(benchVectorConstructionInt<100000, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<1, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<1, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<1, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<10, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<10, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<10, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<100, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<100, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<100, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<1000, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<10000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<10000, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<10000, std::any>);
 
 BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<8>>);
+BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<16>>);
 BENCHMARK(benchVectorConstructionInt128<100000, std::any>);
 
 //BENCHMARK(benchCtorInt<AnyOnePtr<8>>)->MinTime(kMinTime);
