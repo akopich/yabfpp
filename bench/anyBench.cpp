@@ -69,11 +69,12 @@ static void benchSwapInt(benchmark::State& state) {
 }
 
 
-template <size_t N, typename Any, typename ValueType>
+template <typename Any, typename ValueType>
 static void benchVectorConstruction(benchmark::State& state) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> intDist(1, std::numeric_limits<int>::max());
+    size_t N = state.range(0);
     std::vector<ValueType> ints(N);
     std::ranges::generate(ints, [&] {return intDist(gen);});
 
@@ -108,11 +109,11 @@ static auto benchWithInt128 = benchWithValue<Any, __int128, 0xDEADDEADBEEF>;
 BENCHMARK(benchWithInt128<AnyOnePtr<8>>)->MinTime(kMinTime);
 BENCHMARK(benchWithInt128<std::any>)->MinTime(kMinTime);
 
-template <size_t N, typename Any>
-static auto benchVectorConstructionInt = benchVectorConstruction<N, Any, int>;
+template <typename Any>
+static auto benchVectorConstructionInt = benchVectorConstruction<Any, int>;
 
-template <size_t N, typename Any>
-static auto benchVectorConstructionInt64 = benchVectorConstruction<N, Any, std::uint64_t>;
+template <typename Any>
+static auto benchVectorConstructionInt64 = benchVectorConstruction<Any, std::uint64_t>;
 
 struct Int128 {
     uint64_t a;
@@ -127,8 +128,8 @@ bool operator<(const Int128& a, const Int128& b) {
 
 static_assert(alignof(Int128) == alignof(void*));
 
-template <size_t N, typename Any>
-static auto benchVectorConstructionInt128 = benchVectorConstruction<N, Any, Int128>;
+template <typename Any>
+static auto benchVectorConstructionInt128 = benchVectorConstruction<Any, Int128>;
 
 struct NonNoThrowMoveConstructibleInt {
     int x;
@@ -149,68 +150,20 @@ bool operator<(const NonNoThrowMoveConstructibleInt& a, const NonNoThrowMoveCons
 
 static_assert(!std::is_nothrow_move_constructible_v<NonNoThrowMoveConstructibleInt>);
 
-template <size_t N, typename Any>
-static auto benchVectorConstructionThrowInt = benchVectorConstruction<N, Any, NonNoThrowMoveConstructibleInt>;
+template <typename Any>
+static auto benchVectorConstructionThrowInt = benchVectorConstruction<Any, NonNoThrowMoveConstructibleInt>;
 
-BENCHMARK(benchVectorConstructionInt<1, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<1, std::any>);
+static constexpr size_t N = 1 << 18;
 
-BENCHMARK(benchVectorConstructionInt<10, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<10, std::any>);
+BENCHMARK(benchVectorConstructionInt<AnyOnePtr<8, true>>)->Range(1, N);
+BENCHMARK(benchVectorConstructionInt<std::any>)->Range(1, N);
 
-BENCHMARK(benchVectorConstructionInt<100, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<100, std::any>);
+BENCHMARK(benchVectorConstructionInt128<AnyOnePtr<8, true>>)->Range(1, N);
+BENCHMARK(benchVectorConstructionInt128<AnyOnePtr<16, true>>)->Range(1, N);
+BENCHMARK(benchVectorConstructionInt128<std::any>)->Range(1, N);
 
-BENCHMARK(benchVectorConstructionInt<1000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<1000, std::any>);
-
-BENCHMARK(benchVectorConstructionInt<10000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<10000, std::any>);
-
-BENCHMARK(benchVectorConstructionInt<100000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt<100000, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<1, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<1, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<1, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<10, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<10, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<10, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<100, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<100, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<100, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<1000, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<1000, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<10000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<10000, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<10000, std::any>);
-
-BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<8, true>>);
-BENCHMARK(benchVectorConstructionInt128<100000, AnyOnePtr<16, true>>);
-BENCHMARK(benchVectorConstructionInt128<100000, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<1, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<1, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<10, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<10, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<100, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<100, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<1000, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<1000, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<10000, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<10000, std::any>);
-
-BENCHMARK(benchVectorConstructionThrowInt<100000, AnyOnePtr<8, false>>);
-BENCHMARK(benchVectorConstructionThrowInt<100000, std::any>);
+BENCHMARK(benchVectorConstructionThrowInt<AnyOnePtr<8, false>>)->Range(1, N);
+BENCHMARK(benchVectorConstructionThrowInt<std::any>)->Range(1, N);
 
 //BENCHMARK(benchCtorInt<AnyOnePtr<8>>)->MinTime(kMinTime);
 //BENCHMARK(benchCtorInt<std::any>)->MinTime(kMinTime);
