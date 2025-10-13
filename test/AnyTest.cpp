@@ -28,14 +28,15 @@ struct S {
 
 inline constexpr int kInt = 13;
 
-using Storage1 = AnyOnePtr<8>;
-using Storage1Big = AnyOnePtr<80>;
-using Storage2 = AnyTwoPtrs<8>; 
-using Storage2Big = AnyTwoPtrs<80>; 
-
 using StorageTypes = mp11::mp_list<
-    Storage1, Storage1Big,
-    Storage2, Storage2Big,
+    AnyOnePtr<8, true>,
+    AnyOnePtr<80, true>,
+    AnyTwoPtrs<8, true>,
+    AnyTwoPtrs<80, true>,
+    AnyOnePtr<8, false>,
+    AnyOnePtr<80, false>,
+    AnyTwoPtrs<8, false>,
+    AnyTwoPtrs<80, false>,
     detail::DynamicStorage>;
 
 static_assert(alignof(__int128) > alignof(void*)); //make sure int128 has big alignment

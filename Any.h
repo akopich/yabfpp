@@ -119,11 +119,11 @@ constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) con
     return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>);
 };
 
-template <typename MemManager, auto mmStaticMaker, auto mmDynamicMaker, std::size_t Size> requires(Size >= sizeof(void*) )
+template <typename MemManager, auto mmStaticMaker, auto mmDynamicMaker, std::size_t Size, bool NonThrowMovable> requires(Size >= sizeof(void*))
 class StaticStorage {
     private: 
         template <typename T> 
-        inline static constexpr bool kIsBig = sizeof(T) > Size || alignof(T) > alignof(void*);
+        inline static constexpr bool kIsBig = sizeof(T) > Size || alignof(T) > alignof(void*) || (NonThrowMovable && !std::is_nothrow_move_constructible_v<T>);
     public:
         template <typename T> 
         StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
@@ -143,12 +143,13 @@ class StaticStorage {
         }
         StaticStorage(const StaticStorage&) = delete;
         StaticStorage& operator=(StaticStorage&) = delete;
-        StaticStorage(StaticStorage&& other): mm(other.mm) {
+        StaticStorage(StaticStorage&& other) noexcept(NonThrowMovable): mm(other.mm) {
             mm->move(other.ptr(), ptr());
             other.mm = nullptr;
         }
-        StaticStorage& operator=(StaticStorage&& other) {
-            this->~StaticStorage();
+        StaticStorage& operator=(StaticStorage&& other) noexcept(NonThrowMovable) {
+            if (mm != nullptr)
+                mm->del(ptr());
             mm = other.mm;
             mm->move(other.ptr(), ptr());
             other.mm = nullptr;
@@ -234,9 +235,9 @@ decltype(auto) any_cast(Storage&& s) {
 }
 }
 
-template <size_t Size>
-using AnyOnePtr = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, detail::mkMemManagerOnePtrDynamic, Size>;
+template <size_t Size, bool NonThrowMovable = false>
+using AnyOnePtr = detail::StaticStorage<detail::MemManagerOnePtr, detail::mkMemManagerOnePtr, detail::mkMemManagerOnePtrDynamic, Size, NonThrowMovable>;
 
 
-template <size_t Size>
-using AnyTwoPtrs = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs, detail::mkMemManagerTwoPtrsDynamic, Size>;
+template <size_t Size, bool NonThrowMovable = false>
+using AnyTwoPtrs = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMemManagerTwoPtrs, detail::mkMemManagerTwoPtrsDynamic, Size, NonThrowMovable>;
