@@ -4,7 +4,6 @@
 #include <functional>
 #include <utility>
 #include <memory>
-#include <print>
 #include <type_traits>
 
 namespace detail {
@@ -160,10 +159,10 @@ class StaticStorage {
                 mm->del(ptr());
         }
 
-        template <typename T, typename Self, bool IsBig = (sizeof(T) > Size)>
+        template <typename T, typename Self>
         decltype(auto) get(this Self&& self) {
             auto p = const_cast<void*>(std::forward<Self>(self).ptr());
-            if constexpr (IsBig) {
+            if constexpr (kIsBig<T>) {
                 p = *static_cast<void**>(p);
             } 
             return *static_cast<RetainConstPtr<Self, T>>(p);
