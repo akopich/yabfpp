@@ -150,8 +150,9 @@ class StaticStorage {
         StaticStorage& operator=(StaticStorage&& other) noexcept(NonThrowMovable) {
             if (mm != nullptr)
                 mm->del(ptr());
+            mm = nullptr;
+            other.mm->move(other.ptr(), ptr());
             mm = other.mm;
-            mm->move(other.ptr(), ptr());
             other.mm = nullptr;
             return *this;
         }
