@@ -121,3 +121,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canSwap, T, TestCases) {
 
     BOOST_CHECK(Value::cnt == 0);
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canSwapHeterogeneously, T, TestCases) {
+    using Storage = T::Storage;
+    using Value = T::Value;
+    {
+        Storage storage(Value{kInt});
+        {
+            Storage otherStorage(int{42});
+            std::swap(storage, otherStorage);
+            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<int>(storage) == 42);
+        }
+    }
+
+    BOOST_CHECK(Value::cnt == 0);
+}
