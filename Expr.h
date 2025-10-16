@@ -20,7 +20,7 @@ public:
 
     template <typename T>
     static auto mkGenPtr() {
-        return +[](const Erased& obj, BFMachine& bfm) { return any_cast<T>(obj).generate(bfm); };
+        return +[](const Erased& obj, BFMachine& bfm) { return any_cast<const T&>(obj).generate(bfm); };
     }
     template <typename T, typename ... Args>
     ExprBase(std::in_place_type_t<T> tag, Args&&... args ): 

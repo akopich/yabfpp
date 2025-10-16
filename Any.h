@@ -162,12 +162,13 @@ class StaticStorage {
         }
 
         template <typename T, typename Self>
-        decltype(auto) get(this Self&& self) {
+        T get(this Self&& self) {
+            using TnoRef = std::remove_reference_t<T>;
             auto p = const_cast<void*>(std::forward<Self>(self).ptr());
-            if constexpr (kIsBig<T>) {
+            if constexpr (kIsBig<TnoRef>) {
                 p = *static_cast<void**>(p);
             } 
-            return *static_cast<RetainConstPtr<Self, T>>(p);
+            return *static_cast<RetainConstPtr<Self, TnoRef>>(p);
         }
     private:
         alignas(void*) std::array<char, Size> storage;
@@ -225,8 +226,8 @@ public:
     ~DynamicStorage() = default; 
 
     template <typename T, typename Self>
-    decltype(auto) get(this Self&& self) {
-        return *static_cast<RetainConstPtr<Self, T>>(std::forward<Self>(self).storage.get());
+    T get(this Self&& self) {
+        return *static_cast<RetainConstPtr<Self, std::remove_reference_t<T>>>(std::forward<Self>(self).storage.get());
     }
 };
 

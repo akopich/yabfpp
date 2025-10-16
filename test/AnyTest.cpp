@@ -56,9 +56,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, T, TestCases) {
     using Value = T::Value;
     {
         Storage storage(std::in_place_type<Value>, kInt);
-        BOOST_CHECK(any_cast<Value>(storage).i == kInt);
+        BOOST_CHECK(any_cast<Value&>(storage).i == kInt);
         Storage otherStorage = std::move(storage);
-        BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+        BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
     }
     BOOST_CHECK(T::Value::cnt == 0);
 }
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMoveDifferentScope, T, TestCases)
         Storage storage(Value{kInt});
         {
             Storage otherStorage = std::move(storage);
-            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
         }
     }
 
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canMove, T, TestCases) {
         Storage storage(Value{kInt});
         {
             Storage otherStorage = std::move(storage);
-            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
         }
     }
 
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canMoveAssign, T, TestCases) {
         {
             Storage otherStorage(Value{42});
             otherStorage = std::move(storage);
-            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
         }
     }
 
@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canSwap, T, TestCases) {
         {
             Storage otherStorage(Value{42});
             std::swap(storage, otherStorage);
-            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
-            BOOST_CHECK(any_cast<Value>(storage).i == 42);
+            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<Value&>(storage).i == 42);
         }
     }
 
@@ -130,10 +130,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canSwapHeterogeneously, T, TestCases) {
         {
             Storage otherStorage(int{42});
             std::swap(storage, otherStorage);
-            BOOST_CHECK(any_cast<Value>(otherStorage).i == kInt);
+            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
             BOOST_CHECK(any_cast<int>(storage) == 42);
         }
     }
 
     BOOST_CHECK(Value::cnt == 0);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canGetByValueAndByRef, Storage, StorageTypes) {
+    using Value = int;
+    {
+        Storage storage(Value{kInt});
+        {
+            auto value = any_cast<Value>(storage);
+            BOOST_CHECK(value == kInt);
+            value++;
+            BOOST_CHECK(value == kInt + 1);
+            auto& valueRef = any_cast<Value&>(storage);
+            BOOST_CHECK(valueRef == kInt);
+            valueRef++;
+            BOOST_CHECK(valueRef == kInt + 1);
+            BOOST_CHECK(any_cast<int>(storage) == kInt + 1);
+        }
+    }
 }
