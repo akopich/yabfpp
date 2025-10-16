@@ -8,7 +8,6 @@
 #include <boost/mpl/list.hpp>
 #include <boost/mp11/algorithm.hpp>
 
-namespace mpl = boost::mpl;
 namespace mp11 = boost::mp11;
 
 template <typename AlignAs>
@@ -18,10 +17,25 @@ struct S {
     inline static int cnt = 0;
     S(int i): i(i) {  cnt++; }
     S(S&& other): i(other.i) { cnt++; }
-    S& operator=(S&& other) { i = other.i; cnt++; return *this; }
-    S(S&) = delete;
-    S& operator=(S&) = delete;
+    S& operator=(S&& other) { i = other.i; return *this; }
+    S(const S&) = delete;
+    S& operator=(const S&) = delete;
     ~S() {
+        cnt--;
+    }
+};
+
+template <typename AlignAs>
+struct C {
+    alignas(AlignAs) std::array<char, 15> payload;
+    int i;
+    inline static int cnt = 0;
+    C(int i): i(i) {  cnt++; }
+    C(C&& other): i(other.i) { cnt++; }
+    C& operator=(C&& other) { i = other.i;  return *this; }
+    C(const C& other) { i = other.i; cnt++; }
+    C& operator=(const C& other )  { i = other.i;  return *this; }
+    ~C() {
         cnt--;
     }
 };
@@ -41,7 +55,7 @@ using StorageTypes = mp11::mp_list<
 
 static_assert(alignof(__int128) > alignof(void*)); //make sure int128 has big alignment
 static_assert(alignof(std::int32_t) < alignof(void*)); //make sure int32 has small alignment
-using ValueTypes = mp11::mp_list<S<std::int32_t>, S<__int128>>;
+using ValueTypes = mp11::mp_list<S<std::int32_t>, S<__int128>, C<std::int32_t>, C<__int128>>;
 
 template <typename Storage_, typename Value_>
 struct TestCase {
