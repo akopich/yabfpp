@@ -173,7 +173,7 @@ class StaticStorage {
             if constexpr (kIsBig<TnoRef>) {
                 p = *static_cast<void**>(p);
             } 
-            return static_cast<T>(*static_cast<RetainConstPtr<Self, std::remove_reference_t<T>>>(p));
+            return star<T, Self>(p);
         }
     private:
         alignas(void*) std::array<char, Size> storage;
@@ -232,7 +232,7 @@ public:
 
     template <typename T, typename Self>
     T get(this Self&& self) {
-        return static_cast<T>(*static_cast<RetainConstPtr<Self, std::remove_reference_t<T>>>(std::forward<Self>(self).storage.get()));
+        return star<T, Self>(std::forward<Self>(self).storage.get());
     }
 };
 
