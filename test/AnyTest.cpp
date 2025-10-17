@@ -152,20 +152,38 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canSwapHeterogeneously, T, TestCases) {
     BOOST_CHECK(Value::cnt == 0);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(canGetByValueAndByRef, Storage, StorageTypes) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canGetByValue, Storage, StorageTypes) {
     using Value = int;
+    Storage storage(Value{kInt});
+    auto value = any_cast<Value>(storage);
+    BOOST_CHECK(value == kInt);
+    value++;
+    BOOST_CHECK(value == kInt + 1);
+    BOOST_CHECK(any_cast<Value>(storage) == kInt);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canGetByRef, T, TestCases) {
+    using Storage = T::Storage;
+    using Value = T::Value;
     {
         Storage storage(Value{kInt});
-        {
-            auto value = any_cast<Value>(storage);
-            BOOST_CHECK(value == kInt);
-            value++;
-            BOOST_CHECK(value == kInt + 1);
-            auto& valueRef = any_cast<Value&>(storage);
-            BOOST_CHECK(valueRef == kInt);
-            valueRef++;
-            BOOST_CHECK(valueRef == kInt + 1);
-            BOOST_CHECK(any_cast<int>(storage) == kInt + 1);
-        }
+        auto& valueRef = any_cast<Value&>(storage);
+        BOOST_CHECK(valueRef.i == kInt);
+        valueRef.i++;
+        BOOST_CHECK(valueRef.i == kInt + 1);
+        BOOST_CHECK(any_cast<Value&>(storage).i == kInt + 1);
     }
+    BOOST_CHECK(Value::cnt == 0);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canGetByRefRef, T, TestCases) {
+    using Storage = T::Storage;
+    using Value = T::Value;
+    {
+        Storage storage(Value{kInt});
+        auto value = any_cast<Value&&>(storage);
+        BOOST_CHECK(value.i == kInt);
+    }
+
+    BOOST_CHECK(Value::cnt == 0);
 }
