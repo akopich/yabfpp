@@ -55,7 +55,9 @@ using StorageTypes = mp11::mp_list<
 
 static_assert(alignof(__int128) > alignof(void*)); //make sure int128 has big alignment
 static_assert(alignof(std::int32_t) < alignof(void*)); //make sure int32 has small alignment
-using ValueTypes = mp11::mp_list<S<std::int32_t>, S<__int128>, C<std::int32_t>, C<__int128>>;
+using MoveOnlyTypes = mp11::mp_list<S<std::int32_t>, S<__int128>>;
+using CopyTypes = mp11::mp_list<C<std::int32_t>, C<__int128>>;
+using ValueTypes = mp11::mp_append<MoveOnlyTypes, CopyTypes>;
 
 template <typename Storage_, typename Value_>
 struct TestCase {
@@ -64,8 +66,30 @@ struct TestCase {
 };
 
 using TestCases = mp11::mp_product<TestCase, StorageTypes, ValueTypes>;
+using CopyTypesTestCases = mp11::mp_product<TestCase, StorageTypes, CopyTypes>;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, T, TestCases) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateFromRef, T, CopyTypesTestCases) {
+    using Storage = T::Storage;
+    using Value = T::Value;
+    {
+        Storage storage(static_cast<const Value&>(kInt));
+        BOOST_CHECK(any_cast<Value&>(storage).i == kInt);
+    }
+    BOOST_CHECK(T::Value::cnt == 0);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateFromRefRef, T, TestCases) {
+    using Storage = T::Storage;
+    using Value = T::Value;
+    {
+        Value v{kInt};
+        Storage storage(std::move(v));
+        BOOST_CHECK(any_cast<Value&>(storage).i == kInt);
+    }
+    BOOST_CHECK(T::Value::cnt == 0);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateInPlaceAndMove, T, TestCases) {
     using Storage = T::Storage;
     using Value = T::Value;
     {
@@ -77,21 +101,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, T, TestCases) {
     BOOST_CHECK(T::Value::cnt == 0);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMoveDifferentScope, T, TestCases) {
-    using Storage = T::Storage;
-    using Value = T::Value;
-    {
-        Storage storage(Value{kInt});
-        {
-            Storage otherStorage = std::move(storage);
-            BOOST_CHECK(any_cast<Value&>(otherStorage).i == kInt);
-        }
-    }
-
-    BOOST_CHECK(Value::cnt == 0);
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(canMove, T, TestCases) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateAndMove, T, TestCases) {
     using Storage = T::Storage;
     using Value = T::Value;
     {

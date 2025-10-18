@@ -131,7 +131,7 @@ class StaticStorage {
         inline static constexpr bool kIsBig = sizeof(T) > Size || alignof(T) > alignof(void*) || (NonThrowMovable && !std::is_nothrow_move_constructible_v<T>);
     public:
         template <typename T> 
-        StaticStorage(T&& t) : StaticStorage(std::in_place_type<T>, std::forward<T>(t)) {}
+        StaticStorage(T&& t) : StaticStorage(std::in_place_type<std::remove_cvref_t<T>>, std::forward<T>(t)) {}
 
         template <typename T, typename ... Args>
         StaticStorage(std::in_place_type_t<T>, Args... args) {
@@ -215,8 +215,8 @@ public:
     DynamicStorage(const DynamicStorage&) = delete;
     DynamicStorage& operator=(const DynamicStorage&) = delete;
 
-    template <typename T>
-    DynamicStorage(T&& t): storage{new T(std::forward<T>(t)), Deleter{kTypeTag<T>}} {}
+    template <typename T, typename TnoRef = std::remove_cvref_t<T>>
+    DynamicStorage(T&& t): storage{new TnoRef(std::forward<T>(t)), Deleter{kTypeTag<TnoRef>}} {}
 
     DynamicStorage& operator=(DynamicStorage&& t) {
         storage = std::move(t.storage);

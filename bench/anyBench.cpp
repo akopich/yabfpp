@@ -79,8 +79,8 @@ static void benchVectorConstruction(benchmark::State& state) {
     std::ranges::generate(ints, [&] {return intDist(gen);});
 
     for (auto _ : state) {
-        auto anys = ints | std::views::transform([](ValueType i) {
-                return Any{std::in_place_type<ValueType>, i};
+        auto anys = ints | std::views::transform([](const ValueType& i) {
+                return Any{i};
                 }) | std::ranges::to<std::vector>();
         std::ranges::sort(anys, [](const Any& a, const Any& b) {
                 return any_cast<ValueType>(a) < any_cast<ValueType>(b);
