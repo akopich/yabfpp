@@ -5,10 +5,9 @@
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
-#include <boost/mpl/list.hpp>
-#include <boost/mp11/algorithm.hpp>
+#include <boost/hana.hpp>
 
-namespace mp11 = boost::mp11;
+namespace hana = boost::hana;
 
 template <typename AlignAs>
 struct S {
@@ -42,22 +41,32 @@ struct C {
 
 inline constexpr int kInt = 13;
 
-using StorageTypes = mp11::mp_list<
-    AnyOnePtr<8, true>,
-    AnyOnePtr<80, true>,
-    AnyTwoPtrs<8, true>,
-    AnyTwoPtrs<80, true>,
-    AnyOnePtr<8, false>,
-    AnyOnePtr<80, false>,
-    AnyTwoPtrs<8, false>,
-    AnyTwoPtrs<80, false>,
-    detail::DynamicStorage>;
+constexpr auto IsExcptSafe = hana::tuple_c<bool, false, true>;
+constexpr auto StaticStorageSizes = hana::tuple_c<int, 8, 80>; 
+
+template <template <auto ...> typename T>
+constexpr auto mkAny = [](auto T_pair) {
+    constexpr int Size = decltype(+hana::at_c<0>(T_pair))::value;
+    constexpr bool IsSafe = decltype(+hana::at_c<1>(T_pair))::value;
+    return hana::type_c<T<Size, IsSafe>>;
+};
+
+auto make_instantiations = [](auto StorageSizes, auto ExcptSafe, auto Transformer) {
+    return hana::transform(hana::cartesian_product(hana::make_tuple(StorageSizes, ExcptSafe)), Transformer);
+};
+
+constexpr auto AnyOnePtrsInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyOnePtr>);
+constexpr auto AnyTwoPtrsInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyTwoPtrs>);
+
+constexpr auto StorageTypesHana = hana::append(hana::concat(AnyOnePtrsInsts, AnyTwoPtrsInsts), hana::type_c<detail::DynamicStorage>);
 
 static_assert(alignof(__int128) > alignof(void*)); //make sure int128 has big alignment
 static_assert(alignof(std::int32_t) < alignof(void*)); //make sure int32 has small alignment
-using MoveOnlyTypes = mp11::mp_list<S<std::int32_t>, S<__int128>>;
-using CopyTypes = mp11::mp_list<C<std::int32_t>, C<__int128>>;
-using ValueTypes = mp11::mp_append<MoveOnlyTypes, CopyTypes>;
+constexpr auto IntTypes = hana::tuple_t<std::int32_t, __int128>;
+
+constexpr auto MoveOnlyTypes = hana::transform(IntTypes, hana::template_<S>);
+constexpr auto CopyTypes = hana::transform(IntTypes, hana::template_<C>);
+constexpr auto ValueTypes = hana::concat(MoveOnlyTypes, CopyTypes);
 
 template <typename Storage_, typename Value_>
 struct TestCase {
@@ -65,8 +74,18 @@ struct TestCase {
     using Value = Value_;
 };
 
-using TestCases = mp11::mp_product<TestCase, StorageTypes, ValueTypes>;
-using CopyTypesTestCases = mp11::mp_product<TestCase, StorageTypes, CopyTypes>;
+template <template <typename ...> typename Tmpl >
+constexpr auto mk = [](auto T) { return hana::unpack(T, hana::template_<Tmpl>); };
+
+constexpr auto TestCasesHana = hana::transform(hana::cartesian_product(hana::make_tuple(StorageTypesHana, ValueTypes)), mk<TestCase>);
+constexpr auto CopyTypesTestCasesHana = hana::transform(hana::cartesian_product(hana::make_tuple(StorageTypesHana, CopyTypes)), mk<TestCase>);
+
+template <auto HanaTuple>
+using AsTuple = decltype(hana::unpack(HanaTuple, hana::template_<std::tuple>))::type;
+
+using TestCases = AsTuple<TestCasesHana>;
+using CopyTypesTestCases = AsTuple<CopyTypesTestCasesHana>;
+using StorageTypes = AsTuple<StorageTypesHana>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(canInstantiateFromRef, T, CopyTypesTestCases) {
     using Storage = T::Storage;

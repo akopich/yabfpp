@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 
-add_compile_options("-Wall" "-Wextra" "-pedantic")
+add_compile_options("-Wall" "-Wextra" "-pedantic" "-fno-rtti")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Debug-specific flags
@@ -29,7 +29,6 @@ else()
     add_compile_options("-fno-exceptions" "-g" "-O0")
 endif()
 
-link_libraries()
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE LIBS)
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE SYS_LIBS)
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF)
