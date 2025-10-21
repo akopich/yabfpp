@@ -6,6 +6,12 @@
 #include <memory>
 #include <type_traits>
 
+#define SUPPRESS_SWITCH_WARNING_START \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Wswitch\"")
+#define SUPPRESS_SWITCH_WARNING_END \
+        _Pragma("GCC diagnostic pop")
+
 namespace detail {
 
 template <typename S, typename T>
@@ -93,11 +99,12 @@ constexpr inline auto mkMemManagerThreePtrsDynamic = []<typename T>(TypeTag<T>) 
 };
 
 enum Op {
-    DEL, MOV
+    DEL, MOV, CPY
 };
 
+
 struct MemManagerOnePtr {
-    private :
+    protected :
         using Ptr = void(*)(Op, void*, void*);
     public: 
 
@@ -112,20 +119,46 @@ struct MemManagerOnePtr {
         Ptr ptr;
 };
 
+struct MemManagerOnePtrCpy : MemManagerOnePtr {
+    void cpy(void* src, void* dst) const {
+        std::invoke(ptr, CPY, src, dst);
+    }
+};
+
 
 template <typename Del, typename Mov>
 consteval auto mkMemManagerOnePtrFromLambdas(Del, Mov) {
     return MemManagerOnePtr {
-        +[]( Op op, void* ptr, void* dst) -> void {
+        +[](Op op, void* ptr, void* dst) -> void {
+            SUPPRESS_SWITCH_WARNING_START
             switch (op) {
                 case DEL: 
                     Del{}(ptr);
                     break;
                 case MOV:
                     Mov{}(ptr, dst);
+            SUPPRESS_SWITCH_WARNING_END
             }
         }
     };
+}
+
+template <typename Del, typename Mov, typename Cpy>
+consteval auto mkMemManagerOnePtrCpyFromLambdas(Del, Mov, Cpy) {
+    return MemManagerOnePtrCpy {{
+        +[](Op op, void* ptr, void* dst) -> void {
+            switch (op) {
+                case DEL: 
+                    Del{}(ptr);
+                    break;
+                case MOV:
+                    Mov{}(ptr, dst);
+                    break;
+                case CPY:
+                    Cpy{}(ptr, dst);
+            }
+        }
+    }};
 }
 
 constexpr inline auto mkMemManagerOnePtrStatic = []<typename T>(TypeTag<T>) consteval {
@@ -134,6 +167,14 @@ constexpr inline auto mkMemManagerOnePtrStatic = []<typename T>(TypeTag<T>) cons
 
 constexpr inline auto mkMemManagerOnePtrDynamic = []<typename T>(TypeTag<T>) consteval {
     return mkMemManagerOnePtrFromLambdas(delDynamic<T>, movDynamic<T>);
+};
+
+constexpr inline auto mkMemManagerOnePtrCpyStatic = []<typename T>(TypeTag<T>) consteval {
+    return mkMemManagerOnePtrCpyFromLambdas(delStatic<T>, movStatic<T>, cpyStatic<T>);
+};
+
+constexpr inline auto mkMemManagerOnePtrCpyDynamic = []<typename T>(TypeTag<T>) consteval {
+    return mkMemManagerOnePtrCpyFromLambdas(delDynamic<T>, movDynamic<T>, cpyDynamic<T>);
 };
 
 template <typename T, typename Self, typename Void>
@@ -274,3 +315,7 @@ using AnyTwoPtrs = detail::StaticStorage<detail::MemManagerTwoPtrs, detail::mkMe
 
 template <size_t Size, bool NonThrowMovable = false>
 using AnyThreePtrs = detail::StaticStorage<detail::MemManagerThreePtrs, detail::mkMemManagerThreePtrsStatic, detail::mkMemManagerThreePtrsDynamic, Size, NonThrowMovable, /*IsMoveOnly=*/ false>;
+
+template <size_t Size, bool NonThrowMovable = false>
+using AnyOnePtrsCpy = detail::StaticStorage<detail::MemManagerOnePtrCpy, detail::mkMemManagerOnePtrCpyStatic, detail::mkMemManagerOnePtrCpyDynamic, Size, NonThrowMovable, /*IsMoveOnly=*/ false>;
+
