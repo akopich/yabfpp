@@ -317,5 +317,5 @@ template <size_t Size, bool NonThrowMovable = false>
 using AnyThreePtrs = detail::StaticStorage<detail::MemManagerThreePtrs, detail::mkMemManagerThreePtrsStatic, detail::mkMemManagerThreePtrsDynamic, Size, NonThrowMovable, /*IsMoveOnly=*/ false>;
 
 template <size_t Size, bool NonThrowMovable = false>
-using AnyOnePtrsCpy = detail::StaticStorage<detail::MemManagerOnePtrCpy, detail::mkMemManagerOnePtrCpyStatic, detail::mkMemManagerOnePtrCpyDynamic, Size, NonThrowMovable, /*IsMoveOnly=*/ false>;
+using AnyOnePtrCpy = detail::StaticStorage<detail::MemManagerOnePtrCpy, detail::mkMemManagerOnePtrCpyStatic, detail::mkMemManagerOnePtrCpyDynamic, Size, NonThrowMovable, /*IsMoveOnly=*/ false>;
 

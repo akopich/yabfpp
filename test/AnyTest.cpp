@@ -58,10 +58,10 @@ auto make_instantiations = [](auto StorageSizes, auto ExcptSafe, auto Transforme
 constexpr auto AnyOnePtrsInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyOnePtr>);
 constexpr auto AnyTwoPtrsInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyTwoPtrs>);
 constexpr auto AnyThreePtrsInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyThreePtrs>);
-constexpr auto AnyOnePtrsCpyInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyOnePtrsCpy>);
+constexpr auto AnyOnePtrCpyInsts = make_instantiations(StaticStorageSizes, IsExcptSafe, mkAny<AnyOnePtrCpy>);
 
 constexpr auto MoveOnlyStorageTypesHana = hana::append(hana::concat(AnyOnePtrsInsts, AnyTwoPtrsInsts), hana::type_c<detail::DynamicStorage>);
-constexpr auto CopyStorageTypesHana = hana::concat(AnyThreePtrsInsts, AnyOnePtrsCpyInsts);
+constexpr auto CopyStorageTypesHana = hana::concat(AnyThreePtrsInsts, AnyOnePtrCpyInsts);
 
 static_assert(alignof(__int128) > alignof(void*)); //make sure int128 has big alignment
 static_assert(alignof(std::int32_t) < alignof(void*)); //make sure int32 has small alignment
