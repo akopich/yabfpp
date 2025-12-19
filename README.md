@@ -84,7 +84,8 @@ $fib(12)*                       ; or you can just call the function with an inte
 Dependencies are `cmake`, `clang20`, `llvm20` and `boost 1.76`. Python3 is required for testing. 
 
 ```
-git clone https://github.com/akopich/yabfpp.git
+git clone --recursive https://github.com/akopich/yabfpp.git
+
 cd yabfpp/
 cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target all 
