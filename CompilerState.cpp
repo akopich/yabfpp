@@ -39,9 +39,9 @@ llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Fu
 }
 
 void CompilerState::generateTapeDoublingFunction() {
-    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(getInt8PtrTy(), 0),
+    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(context, 0),
                                          builder.getInt32Ty(),
-                                         llvm::PointerType::get(builder.getInt32Ty(), 0)};
+                                         llvm::PointerType::get(context, 0)};
     llvm::Function* doubler = clib.declareFunction(argTypes,
                                                     builder.getVoidTy(),
                                                     false,

@@ -30,7 +30,7 @@ public:
     void init() const;
 
     auto* getInt8PtrTy() const {
-        return llvm::PointerType::get(builder->getInt8Ty(), 0);
+        return llvm::PointerType::get(module->getContext(), 0);
     }
 
     CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder) :ConstantHelper(&module->getContext()), module(module), builder(builder) {}

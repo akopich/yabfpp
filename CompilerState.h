@@ -59,13 +59,13 @@ public:
           module(module_name, context),
           builder(context),
           clib(&module, &builder) {
-              module.setTargetTriple(targetTriple);
+              module.setTargetTriple(llvm::Triple{std::string{targetTriple}});
           }
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
     auto* getInt8PtrTy() {
-        return llvm::PointerType::get(llvm::Type::getInt8Ty(context), 0);
+        return llvm::PointerType::get(context, 0);
     }
 
     llvm::Function* declareBFFunction(const std::string& name, const std::vector<llvm::Type*>& args);

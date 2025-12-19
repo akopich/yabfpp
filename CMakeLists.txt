@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
 project(yabfpp)
 
+add_library(woid INTERFACE)
+target_include_directories(woid INTERFACE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/woid/include"
+)
+
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -46,7 +51,7 @@ find_package(Boost 1.76 REQUIRED)
 find_package(benchmark REQUIRED)
 
 add_executable(yabfpp third_party/args.hxx main.cpp Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h)
-target_link_libraries(yabfpp ${Boost_LIBRARIES})
+target_link_libraries(yabfpp ${Boost_LIBRARIES} woid)
 
 add_executable(SourceTest Source.cpp Source.h test/SourceTest.cpp)
 target_link_libraries(SourceTest ${Boost_LIBRARIES})
@@ -55,7 +60,7 @@ add_executable(AnyTest Any.h test/AnyTest.cpp)
 target_link_libraries(AnyTest ${Boost_LIBRARIES})
 
 add_executable(ParserBench  Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h bench/BFProgramGenerator.h bench/parserBench.cpp)
-target_link_libraries(ParserBench benchmark::benchmark)
+target_link_libraries(ParserBench benchmark::benchmark woid)
 
 add_executable(AnyBench Any.h bench/anyBench.cpp)
 target_link_libraries(AnyBench benchmark::benchmark)

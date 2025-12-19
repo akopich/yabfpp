@@ -7,6 +7,7 @@
 #include "TypeTag.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <utility>
+#include <woid.hpp>
 
 #ifndef YABF_EXPR_H
 #define YABF_EXPR_H

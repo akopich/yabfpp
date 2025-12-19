@@ -1,0 +1,3 @@
+[submodule "third_party/woid"]
+	path = third_party/woid
+	url = https://github.com/akopich/woid.git
