@@ -64,7 +64,7 @@ public:
 
     [[nodiscard]] llvm::Function* getCurrentFunction() const;
 
-    auto* getInt8PtrTy() {
+    auto* getPtrTy() {
         return llvm::PointerType::get(context, 0);
     }
 

@@ -6,7 +6,7 @@
 
 
 void CLibHandler::generatePrintfInt() const {
-    declareFunction({getInt8PtrTy()},
+    declareFunction({getPtrTy()},
                     builder->getInt32Ty(),
                     true,
                     "printf");
@@ -44,14 +44,14 @@ llvm::Value* CLibHandler::generateCallCalloc(llvm::Value* size) const {
 
 void CLibHandler::generateCalloc() const {
     declareFunction({builder->getInt32Ty(), builder->getInt32Ty()},
-                    getInt8PtrTy(),
+                    getPtrTy(),
                     false,
                     "calloc");
 }
 
 void CLibHandler::generateMemcpy() const {
-    declareFunction({getInt8PtrTy(), getInt8PtrTy(), builder->getInt32Ty()},
-                    getInt8PtrTy(),
+    declareFunction({getPtrTy(), getPtrTy(), builder->getInt32Ty()},
+                    getPtrTy(),
                     false,
                     "memcpy");
 }
@@ -62,10 +62,7 @@ void CLibHandler::generateCallMemcpy(llvm::Value* dest, llvm::Value* src, llvm::
 
 
 void CLibHandler::generateFree() const {
-    declareFunction({getInt8PtrTy()},
-                    builder->getVoidTy(),
-                    false,
-                    "free");
+    declareFunction({getPtrTy()}, builder->getVoidTy(), false, "free");
 }
 
 void CLibHandler::generateCallFree(llvm::Value* ptr) const {

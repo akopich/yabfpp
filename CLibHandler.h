@@ -26,12 +26,13 @@ private:
     void generateGetChar() const;
 
     void generateMemcpy() const;
+
+    auto* getPtrTy() const {
+        return llvm::PointerType::get(module->getContext(), 0);
+    }
 public:
     void init() const;
 
-    auto* getInt8PtrTy() const {
-        return llvm::PointerType::get(module->getContext(), 0);
-    }
 
     CLibHandler(llvm::Module* module, llvm::IRBuilder<>* builder) :ConstantHelper(&module->getContext()), module(module), builder(builder) {}
 

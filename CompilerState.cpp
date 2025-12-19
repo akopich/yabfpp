@@ -39,9 +39,7 @@ llvm::BasicBlock* CompilerState::createBasicBlock(const std::string& s, llvm::Fu
 }
 
 void CompilerState::generateTapeDoublingFunction() {
-    std::vector<llvm::Type*> argTypes = {llvm::PointerType::get(context, 0),
-                                         builder.getInt32Ty(),
-                                         llvm::PointerType::get(context, 0)};
+    std::vector<llvm::Type*> argTypes = {getPtrTy(), builder.getInt32Ty(), getPtrTy()};
     llvm::Function* doubler = clib.declareFunction(argTypes,
                                                     builder.getVoidTy(),
                                                     false,
@@ -58,7 +56,7 @@ void CompilerState::generateTapeDoublingFunction() {
     llvm::Value* tapeSizePtr = it + 2;
 
     llvm::Value* tapeSize = builder.CreateLoad(Pointer{builder.getInt32Ty(), tapeSizePtr});
-    llvm::Value* tape = builder.CreateLoad(Pointer{getInt8PtrTy(), tapePtr});
+    llvm::Value* tape = builder.CreateLoad(Pointer{getPtrTy(), tapePtr});
     llvm::Value* needsToGrow = builder.CreateICmpUGE(newIndex, tapeSize, "check if the tapePtr needs to grow");
 
     auto doublingTapeBB = createBasicBlock("Doubling the tapePtr", doubler);

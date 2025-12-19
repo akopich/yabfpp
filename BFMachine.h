@@ -55,7 +55,7 @@ inline BFMachine createBFMachine(CompilerState* state, int initialTapeSize) {
     auto* int32ty = state->builder.getInt32Ty();
     auto pointer = state->allocateAndInitialize(int32ty, state->getConstInt(0));
     auto tapeSizePtr = state->allocateAndInitialize(int32ty, state->getConstInt(initialTapeSize));
-    auto tapePtr = state->allocateAndInitialize(state->getInt8PtrTy(), tape);
+    auto tapePtr = state->allocateAndInitialize(state->getPtrTy(), tape);
 
     return {tapePtr, pointer, tapeSizePtr, state, initialTapeSize};
 }
