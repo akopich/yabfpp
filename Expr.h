@@ -11,27 +11,31 @@
 #define YABF_EXPR_H
 
 namespace detail{
+
 template <typename R>
-using I = woid::InterfaceBuilder
-                     ::With<woid::VTableOwnership::DEDICATED>
-                     ::WithStorage<woid::Any<8, woid::Copy::DISABLED>>
-                     ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
-                     ::Build ;
-template <typename R>
-struct ExprBase : I<R> {
+struct ExprBase : woid::InterfaceBuilder
+                      ::With<woid::VTableOwnership::DEDICATED>
+                      ::WithStorage<woid::Any<8, woid::Copy::DISABLED>>
+                      ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
+                      ::Build {
     R generate(BFMachine& bfm) const { return this-> template call<"generate">(bfm); }
 };
+
+inline auto mkExprBase = []<typename E, typename T, typename ... Args>(std::in_place_type_t<E>, std::in_place_type_t<T>, Args&&... args) { 
+    return E{{std::in_place_type<T>, std::forward<Args>(args)...}}; 
+};
+
 }
 
 using Expr = detail::ExprBase<void>;
 
-template <typename T, typename ... Args>
-auto mkExpr(Args&&... args) { return Expr{{std::in_place_type<T>, std::forward<Args>(args)...}}; }
+template <typename T>
+auto mkExpr = std::bind_front(detail::mkExprBase, std::in_place_type<Expr>, std::in_place_type<T>);
 
 using Int8Expr = detail::ExprBase<llvm::Value*>;
 
-template <typename T, typename ... Args>
-auto mkInt8Expr(Args&&... args) { return Int8Expr{{std::in_place_type<T>, std::forward<Args>(args)...}}; }
+template <typename T>
+auto mkInt8Expr = std::bind_front(detail::mkExprBase, std::in_place_type<Int8Expr>, std::in_place_type<T>);
 
 class MinusInt8Expr {
     Int8Expr value;
