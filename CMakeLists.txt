@@ -56,11 +56,5 @@ target_link_libraries(yabfpp ${Boost_LIBRARIES} woid)
 add_executable(SourceTest Source.cpp Source.h test/SourceTest.cpp)
 target_link_libraries(SourceTest ${Boost_LIBRARIES})
 
-add_executable(AnyTest Any.h test/AnyTest.cpp)
-target_link_libraries(AnyTest ${Boost_LIBRARIES})
-
 add_executable(ParserBench  Expr.h CompilerState.h CompilerState.cpp BFMachine.cpp BFMachine.h parser.h parser.cpp CLibHandler.cpp CLibHandler.h PlatformDependent.h Source.cpp Source.h SyntaxError.h ConstantHelper.cpp ConstantHelper.h VariableHandler.h bench/BFProgramGenerator.h bench/parserBench.cpp)
 target_link_libraries(ParserBench benchmark::benchmark woid)
-
-add_executable(AnyBench Any.h bench/anyBench.cpp)
-target_link_libraries(AnyBench benchmark::benchmark)

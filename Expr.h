@@ -2,9 +2,7 @@
 // Created by valerij on 7/30/21.
 //
 
-#include "Any.h"
 #include "BFMachine.h"
-#include "TypeTag.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <utility>
 #include <woid.hpp>
@@ -14,53 +12,26 @@
 
 namespace detail{
 template <typename R>
-class ExprBase {
-public:
-    //using Erased = AnyOnePtr<8>;
-    using Erased = DynamicStorage;
-
-    template <typename T>
-    static auto mkGenPtr() {
-        return +[](const Erased& obj, BFMachine& bfm) { return any_cast<const T&>(obj).generate(bfm); };
-    }
-    template <typename T, typename ... Args>
-    ExprBase(std::in_place_type_t<T> tag, Args&&... args ): 
-        genPtr(mkGenPtr<T>()), 
-        obj(tag, std::forward<Args>(args)...) {
-    }
-    R generate(BFMachine& bfMachine) const {
-        return std::invoke(genPtr, obj, bfMachine);
-    }
-
-    ExprBase(const ExprBase&) = delete;
-    ExprBase& operator=(const ExprBase&) = delete;
-    ExprBase(ExprBase&& other) noexcept : genPtr(other.genPtr), obj(std::move(other.obj)) {}
-    ExprBase& operator=(ExprBase&& other) noexcept {
-       genPtr = other.genPtr;
-       obj = std::move(other.obj);
-       return *this;
-    }
-
-private: 
-    using GenPtr = R(*)(const Erased& , BFMachine&);
-    GenPtr genPtr;
-    Erased obj;
-};
-
-inline auto mkExprBase = []<typename Derived, typename T, typename ... Args>(TypeTag<Derived>, std::in_place_type_t<T> tag, Args&&... args) {
-    return Derived{{tag, std::forward<Args>(args)...}};
+using I = woid::InterfaceBuilder
+                     ::With<woid::VTableOwnership::DEDICATED>
+                     ::WithStorage<woid::Any<8, woid::Copy::DISABLED>>
+                     ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
+                     ::Build ;
+template <typename R>
+struct ExprBase : I<R> {
+    R generate(BFMachine& bfm) const { return this-> template call<"generate">(bfm); }
 };
 }
 
-class Expr : public detail::ExprBase<void> {};
+using Expr = detail::ExprBase<void>;
 
-template <typename T>
-auto mkExpr = std::bind_front(detail::mkExprBase, detail::TypeTag<Expr>{}, std::in_place_type<T>);
+template <typename T, typename ... Args>
+auto mkExpr(Args&&... args) { return Expr{{std::in_place_type<T>, std::forward<Args>(args)...}}; }
 
-class Int8Expr : public detail::ExprBase<llvm::Value*> {};
+using Int8Expr = detail::ExprBase<llvm::Value*>;
 
-template <typename T>
-auto mkInt8Expr = std::bind_front(detail::mkExprBase, detail::TypeTag<Int8Expr>{}, std::in_place_type<T>);
+template <typename T, typename ... Args>
+auto mkInt8Expr(Args&&... args) { return Int8Expr{{std::in_place_type<T>, std::forward<Args>(args)...}}; }
 
 class MinusInt8Expr {
     Int8Expr value;

@@ -173,10 +173,10 @@ Int8Expr Parser::parseInt8Expr(Source::Iterator& i, bool defaultOneAllowed) {
 
     std::string intLiteral = parseIntLiteral(i);
     if (!intLiteral.empty())
-        return mkInt8Expr<ConstInt8Expr>(std::stoi(intLiteral));
+        return mkInt8Expr<ConstInt8Expr>(static_cast<char>(std::stoi(intLiteral)));
 
     if (defaultOneAllowed)
-        return mkInt8Expr<ConstInt8Expr>(1);
+        return mkInt8Expr<ConstInt8Expr>(char{1});
 
     syntaxError(i, "a variable name or an integer literal is expected");
 }
