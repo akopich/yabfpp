@@ -12,10 +12,16 @@
 
 namespace detail{
 
+using Storage = woid::AnyBuilder
+                    ::WithSize<8>
+                    ::DisableCopy
+                    ::With<woid::FunPtr::DEDICATED>
+                    ::Build;
+
 template <typename R>
 struct ExprBase : woid::InterfaceBuilder
                       ::With<woid::VTableOwnership::DEDICATED>
-                      ::WithStorage<woid::Any<8, woid::Copy::DISABLED>>
+                      ::WithStorage<Storage>
                       ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
                       ::Build {
     R generate(BFMachine& bfm) const { return this-> template call<"generate">(bfm); }
