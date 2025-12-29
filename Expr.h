@@ -18,11 +18,12 @@ struct ExprBase : woid::InterfaceBuilder
                       ::WithStorage<woid::TrivialStorage<>>
                       ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
                       ::Build {
+    using ExprBase<R>::Self::Self;
     R generate(BFMachine& bfm) const { return this-> template call<"generate">(bfm); }
 };
 
 inline auto mkExprBase = []<typename E, typename T, typename ... Args>(std::in_place_type_t<E>, std::in_place_type_t<T>, Args&&... args) { 
-    return E{{std::in_place_type<T>, std::forward<Args>(args)...}}; 
+    return E{std::in_place_type<T>, std::forward<Args>(args)...}; 
 };
 
 }
