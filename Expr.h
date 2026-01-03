@@ -15,7 +15,7 @@ namespace detail{
 template <typename R>
 struct ExprBase : woid::InterfaceBuilder
                       ::With<woid::VTableOwnership::DEDICATED>
-                      ::WithStorage<woid::TrivialStorage<16, woid::Copy::DISABLED>>
+                      ::WithStorage<woid::TrivialStorage<8, woid::Copy::DISABLED>>
                       ::Fun<"generate", [](const auto& obj, BFMachine& bfm) -> R { return obj.generate(bfm); }>
                       ::Build {
     using ExprBase<R>::Self::Self;
